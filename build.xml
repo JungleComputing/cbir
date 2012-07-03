@@ -1,0 +1,182 @@
+<project name="CBIR" default="build" basedir=".">
+	<description>
+	Build file for CBIR
+    </description>
+
+	<target name="build" description="Build CBIR" depends="clean,compile,ckernels,cudakernels,jar" />
+
+	<!-- Names for generated directories. -->
+	<property name="javadoc" value="javadoc/cbir" />
+
+	<property name="version" value="0.1" />
+	<property name="version-tag" value="-0.1" />
+
+	<property name="sources-filename" value="cbir" />
+
+	<!-- import environment properties -->
+	<property environment="env" />
+
+	<path id="external.jars">
+		<fileset dir="lib">
+			<include name="*.jar" />
+		</fileset>
+		<fileset dir="lib/constellation">
+			<include name="*.jar" />
+		</fileset>
+		<fileset dir="lib/GAT">
+            <include name="*.jar" />
+        </fileset>
+	</path>
+
+	<path id="default.classpath">
+		<fileset dir="lib">
+			<include name="*.jar" />
+			<include name="**/*.jar" />
+		</fileset>
+		<pathelement path="tmp" />
+	</path>
+
+	<target name="copy-external">
+		<mkdir dir="lib" />
+		<!-- Copy external libraries to lib directory -->
+		<copy todir="lib">
+			<fileset dir="external" excludes="log4jME*.jar" />
+		</copy>
+	</target>
+
+	<!-- Compile CBIR -->
+	<target name="compile" depends="copy-external">
+		<mkdir dir="tmp" />
+
+		<!-- Compile the java code from src into tmp -->
+		<javac srcdir="src/" destdir="tmp" debug="on" source="1.7" target="1.7" classpathref="external.jars">
+			<compilerarg value="-Xlint:unchecked" />
+		</javac>
+
+		<!-- Run Ibisc -->
+		<!--       <java classname="ibis.compile.Ibisc"
+              taskname="Ibisc"
+              failonerror="true"
+              dir="tmp"
+              maxmemory="512m"
+              fork="true"
+        >
+            <arg line="." />
+            <classpath refid="default.classpath" />
+        </java> 
+-->
+
+		<!-- Create jar files. Set a checksum with version info in the manifests -->
+
+		<!-- CBIR -->
+		<property name="cbir.files" value="cbir/**/*.class" />
+
+		<checksum totalproperty="cbir.checksum">
+			<fileset dir="tmp" includes="${cbir.files}" />
+		</checksum>
+
+	</target>
+
+	<target name="ckernels" description="Compile the kernels written in C" depends="compile">
+		<!-- Create jni headers -->
+		<exec executable="javah">
+			<arg value="-classpath" />
+			<arg value="tmp" />
+			<arg value="-o" />
+			<arg value="native/java_cbir.h" />
+			<arg value="cbir.kernels.c.PCA" />
+			<arg value="cbir.kernels.c.SPCA" />
+			<arg value="cbir.kernels.c.NFindr" />
+			<arg value="cbir.kernels.c.LSU" />
+		</exec>
+
+		<!-- compile c library -->
+		<exec executable="make" dir="native">
+			<arg value="libjava_cbir" />
+		</exec>
+		<copy file="native/libjava_cbir.so" todir="." />
+	</target>
+
+	<target name="cudakernels" description="Compile the kernels written in Cuda" depends="compile">
+		<!-- Create jni headers -->
+		<exec executable="javah">
+			<arg value="-classpath" />
+			<arg value="tmp" />
+			<arg value="-o" />
+			<arg value="cuda/jni_cbir_cuda.h" />
+			<arg value="cbir.kernels.cuda.CudaKernel" />
+			<arg value="cbir.kernels.cuda.SPCA" />
+			<arg value="cbir.kernels.cuda.NFindr" />
+			<arg value="cbir.kernels.cuda.LSU" />
+		</exec>
+
+		<!-- compile cuda library -->
+		<exec executable="make" dir="cuda">
+			<arg value="cbir_cuda" />
+		</exec>
+		<copy file="cuda/libcbir_cuda.so" todir="." />
+	</target>
+
+	<target name="jar" description="Create a jar file" depends="compile">
+		<jar destfile="lib/cbir${version-tag}.jar">
+			<fileset dir="tmp" includes="${cbir.files}" />
+			<metainf dir="." includes="LICENSE.txt" />
+		</jar>
+		<delete dir="tmp" />
+	</target>
+
+	<!-- Clean up everything except the rewritten classlibs -->
+	<target name="clean" description="Clean up (leaves rewritten classlibs)">
+		<delete dir="tmp" />
+		<delete dir="lib" />
+
+		<delete file="native/java_cbir.h" />
+		<delete file="libjava_cbir.so" />
+		<exec executable="make" dir="native">
+			<arg value="clean" />
+		</exec>
+
+		<delete file="cuda/jni_cbir_cuda.h" />
+		<delete file="libcbir_cuda.so" />
+		<exec executable="make" dir="cuda">
+			<arg value="clean" />
+		</exec>
+	</target>
+
+	<target name="rewrite" depends="build" description="Preprocess all serializable classes of standard Java">
+		<!-- Create a directory for the rewritten classes -->
+
+		<mkdir dir="${classlibs}" />
+
+		<!-- Then, find and extract jars.  -->
+		<unjar dest="${classlibs}">
+			<patternset>
+				<include name="**/*.class" />
+			</patternset>
+			<fileset dir="${env.JAVA_HOME}/jre/lib">
+				<include name="**/*.jar" />
+			</fileset>
+		</unjar>
+
+		<!-- Then, rewrite.  -->
+		<java classname="ibis.compile.Ibisc" taskname="Ibisc" failonerror="true" maxmemory="512m" dir="${rewritten-classlibs}" fork="true">
+			<arg line="." />
+			<classpath refid="default.classpath" />
+		</java>
+	</target>
+
+	<target name="rewritten-clean" description="Clean up rewritten classlibs (except under sym links)">
+		<!--
+		If ${rewritten-classlibs} is a sym-link, we let the directory
+		live on. In this case, I suppose the user knows what he is up to.
+		If it isn't a symlink (which is the normal case) go ahead and
+		throw away all your rewritten stuff.	RFHH
+		-->
+		<delete includeEmptyDirs="true">
+			<fileset dir="." followsymlinks="false">
+				<include name="classlibs/**" />
+			</fileset>
+		</delete>
+	</target>
+
+</project>
