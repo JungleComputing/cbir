@@ -31,7 +31,7 @@ public class StoreTiledUpdateActivity extends StoreActivity {
 
 	public StoreTiledUpdateActivity(String storeName, int tileWidth,
 			int tileHeight, String... repositories) {
-		super(false, true, storeName);
+		super(false, false, true, storeName);
 		this.repositories = repositories;
 		this.tileWidth = tileWidth;
 		this.tileHeight = tileHeight;

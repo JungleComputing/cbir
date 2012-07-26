@@ -25,7 +25,7 @@ public class LogPanel extends JScrollPane {
 	public void addLine(String line) {
 		logText.append(line + "\n");
 		logText.setCaretPosition(logText.getText().length());
-//		repaint();
+		repaint();
 	}
 	
 	public void clear() {

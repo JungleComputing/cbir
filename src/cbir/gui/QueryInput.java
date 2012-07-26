@@ -11,7 +11,6 @@ import cbir.envi.ImageIdentifier;
 
 public class QueryInput {
 
-	private String[] bands;
 	private String file;
 	private ImageIdentifier imageID;
 	// private EnviHeader header;
@@ -31,15 +30,7 @@ public class QueryInput {
 		imageID = new ImageIdentifier(file);
 		try {
 			EnviHeader header = rops.readHeader(file);
-			bands = header.getBandnames();
-			bands = null;
-			if (bands == null) {
-				bands = new String[header.getDimensions().numBands];
-				for (int i = 0; i < bands.length; i++) {
-					bands[i] = String.valueOf(i);
-				}
-			}
-			
+						
 			//FIXME for large image, we only read the center part
 			Dimensions dim = header.getDimensions();
 			if(dim.numLines > 256 || dim.numSamples > 256) {
@@ -52,7 +43,6 @@ public class QueryInput {
 		} catch (IOException e) {
 			e.printStackTrace();
 			image = null;
-			bands = null;
 		}
 	}
 	
@@ -76,7 +66,32 @@ public class QueryInput {
 	}
 
 	public String[] getBandNames() {
+		if(!hasImage()) {
+			return null;
+		}
+		String[] bands = image.getHeader().getBandnames();
+		if (bands == null) {
+			bands = getBandNumbers();
+		}
 		return bands;
+	}
+
+	public String[] getBandNumbers() {
+		if(!hasImage()) {
+			return null;
+		}
+		String[] numbers = new String[image.getHeader().getDimensions().numBands];
+		for (int i = 0; i < numbers.length; i++) {
+			numbers[i] = String.valueOf(i+1);
+		}
+		return numbers;
+	}
+	
+	public float[] getWavelengths() {
+		if(!hasImage()) {
+			return null;
+		}
+		return image.getHeader().getWavelengths();
 	}
 
 	public BufferedImage getRGBImage(int red, int green, int blue) {
@@ -90,4 +105,9 @@ public class QueryInput {
 	public FloatImage getFloatImage() {
 		return image;
 	}
+
+	public boolean hasImage() {
+		return image != null;
+	}
+
 }

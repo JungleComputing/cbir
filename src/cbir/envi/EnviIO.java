@@ -187,7 +187,7 @@ public class EnviIO {
 				temp += last;
 
 				bandnames = temp.split(",");
-			} else if (line.startsWith("wavelengths")) {
+			} else if (line.trim().startsWith("wavelength")) {
 				// discard this line and read the next lines for the
 				// description information
 				String temp = "";
@@ -204,7 +204,7 @@ public class EnviIO {
 				for (int i = 0; i < wlString.length; i++) {
 					wavelengths[i] = Float.parseFloat(wlString[i]);
 				}
-			} else if (line.startsWith("fwhm")) {
+			} else if (line.trim().startsWith("fwhm")) {
 				// discard this line and read the next lines for the
 				// description information
 				String temp = "";

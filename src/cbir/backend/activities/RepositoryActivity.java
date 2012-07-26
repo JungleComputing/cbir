@@ -14,20 +14,25 @@ public abstract class RepositoryActivity extends KernelActivity {
 	 */
 	private static final long serialVersionUID = 3023916684381764734L;
 
-	protected static final ActivityContext createContext(String... repositories) {
-		return createContext(UnitActivityContext.DEFAULT_RANK, repositories);
+//	protected static final ActivityContext createContext(String... repositories) {
+//		return createContext(UnitActivityContext.DEFAULT_RANK, repositories);
+//	}
+	
+	
+	private static final long getRank(boolean interactive) {
+		return interactive? 2:1;
 	}
 	
-	protected static final ActivityContext createContext(long rank, String... repositories) {
+	protected static final ActivityContext createContext(boolean interactive, String... repositories) {
 		if (repositories == null || repositories.length == 0) {
 			throw new IllegalArgumentException("At least one repository needed");
 		} else if (repositories.length == 1) {
-			return new UnitActivityContext(ContextStrings.createForRepository(repositories[0]), rank);
+			return new UnitActivityContext(ContextStrings.createForRepository(repositories[0]), getRank(interactive));
 		} else {
 			UnitActivityContext[] contexts = new UnitActivityContext[repositories.length];
 			for (int i = 0; i < repositories.length; i++) {
 				contexts[i] = new UnitActivityContext(
-						ContextStrings.createForRepository(repositories[i]),rank);
+						ContextStrings.createForRepository(repositories[i]),getRank(interactive));
 			}
 			return new OrActivityContext(contexts);
 		}

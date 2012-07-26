@@ -12,7 +12,7 @@ public abstract class StoreActivity extends Activity {
 
 	private static final long serialVersionUID = 3023916684381764734L;
 
-	private static ActivityContext createContext(String... stores) {
+	private static ActivityContext createContext(boolean interactive, String... stores) {
 		if(stores == null || stores.length == 0) {
 			return null;
 		} else if(stores.length ==1) {
@@ -26,8 +26,8 @@ public abstract class StoreActivity extends Activity {
 		}
 	}
 	
-	protected StoreActivity(boolean restrictToLocal, boolean willReceiveEvents, String... stores) {
-		super(createContext(stores), restrictToLocal, willReceiveEvents);
+	protected StoreActivity(boolean interactive, boolean restrictToLocal, boolean willReceiveEvents, String... stores) {
+		super(createContext(interactive, stores), restrictToLocal, willReceiveEvents);
 	}
 
 	@Override

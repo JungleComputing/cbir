@@ -27,7 +27,7 @@ public class CreateTilesAndGetFeatureVectors extends RepositoryActivity {
 
 	public CreateTilesAndGetFeatureVectors(ImageIdentifier imageID, int tileWidth, int tileHeight, String[] repositories,
 			ActivityIdentifier... targets) {
-		super(createContext(repositories), false, true);
+		super(createContext(false, repositories), false, true);
 		this.repositories = repositories;
 		this.imageID = imageID;
 		this.targets = targets;
@@ -37,7 +37,7 @@ public class CreateTilesAndGetFeatureVectors extends RepositoryActivity {
 
 	public CreateTilesAndGetFeatureVectors(ImageIdentifier imageID, int tileWidth, int tileHeight, String repository,
 			ActivityIdentifier... targets) {
-		super(createContext(repository), false, true);
+		super(createContext(false, repository), false, true);
 
 		this.imageID = imageID;
 		this.targets = targets;

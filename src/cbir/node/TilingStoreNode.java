@@ -39,19 +39,26 @@ public class TilingStoreNode extends Node {
 		String[] repositories;
 		String storeName;
 
-		storeName = args[0];
-		int width = Integer.parseInt(args[1]);
-		int height = Integer.parseInt(args[2]);
-		repositories = Arrays.copyOfRange(args, 3, args.length);
+		int executors = Integer.parseInt(args[0]);
+		storeName = args[1];
+		int width = Integer.parseInt(args[2]);
+		int height = Integer.parseInt(args[3]);
+		repositories = Arrays.copyOfRange(args, 4, args.length);
 
 		Cbir cbir = new Cbir();
 
+		if(executors < 1) {
+			executors = 1;
+		}
 		MetadataStore store = new MetadataStoreImpl(storeName);
-		Executor e = cbir.getFactory().createMetadataStoreExecutor(store,
+		Executor[] execs = new Executor[executors];
+		for(int i = 0; i < executors; i++) {
+			execs[i] = cbir.getFactory().createMetadataStoreExecutor(store,
 				repositories);
+		}
 
 
-		TilingStoreNode node = new TilingStoreNode(storeName, width, height, repositories, e);
+		TilingStoreNode node = new TilingStoreNode(storeName, width, height, repositories, execs);
 		node.activate();
 
 		// nothing to do here, just wait for completion...

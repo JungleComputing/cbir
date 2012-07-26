@@ -30,7 +30,7 @@ public class StoreCommunicator extends StoreActivity {
 	 * @param storeName
 	 */
 	public StoreCommunicator(String store) {
-		super(false, true, store);
+		super(true, false, true, store);
 	}
 
 	/* (non-Javadoc)

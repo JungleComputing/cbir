@@ -18,8 +18,16 @@ public class GetImageCommand extends Command {
 		this.stores = stores;
 	}
 	
+	public GetImageCommand(ImageIdentifier imageID) {
+		this.imageID = imageID;
+		this.stores = null;
+	}
+	
 	@Override
 	public void execute(QueryInitiator qi, ActivityIdentifier destination) {
+		if(stores == null) {
+			qi.getImage(imageID, destination);
+		}
 		qi.getImage(imageID, stores, destination);
 	}
 	

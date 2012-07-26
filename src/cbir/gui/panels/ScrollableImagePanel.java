@@ -1,5 +1,6 @@
 package cbir.gui.panels;
 
+import java.awt.Dimension;
 import java.awt.image.BufferedImage;
 
 import javax.swing.JScrollPane;
@@ -14,11 +15,33 @@ public class ScrollableImagePanel extends JScrollPane {
 	private ImagePanel imagePanel;
 	
 	public ScrollableImagePanel(String title) {
+		this();
+		setBorder(new TitledBorder(null, title,
+				TitledBorder.LEADING, TitledBorder.TOP, null, null));
+//		setPreferredSize(new Dimension(400, 400));
+//		setMinimumSize(new Dimension(400, 400));
+	}
+	
+	public ScrollableImagePanel(String title, Dimension viewPortSize) {
+		this(title);
+		getViewport().setPreferredSize(viewPortSize);
+		getViewport().setMinimumSize(viewPortSize);
+//		setPreferredSize(new Dimension(400, 400));
+//		setMinimumSize(new Dimension(400, 400));
+	}
+	
+	public ScrollableImagePanel(Dimension viewPortSize) {
+		this();
+		getViewport().setPreferredSize(viewPortSize);
+		getViewport().setMinimumSize(viewPortSize);
+//		setPreferredSize(new Dimension(400, 400));
+//		setMinimumSize(new Dimension(400, 400));
+	}
+	
+	public ScrollableImagePanel() {
 		super();
 		imagePanel = new ImagePanel();
 		setViewportView(imagePanel);
-		setBorder(new TitledBorder(null, title,
-				TitledBorder.LEADING, TitledBorder.TOP, null, null));
 //		setPreferredSize(new Dimension(400, 400));
 //		setMinimumSize(new Dimension(400, 400));
 	}

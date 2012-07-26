@@ -32,7 +32,7 @@ public class GetPreviewFromRepository extends RepositoryActivity {
 
 	public GetPreviewFromRepository(ImageIdentifier imageID, int red, int green, int blue,
 			String[] repositories, ActivityIdentifier... targets) {
-		super(createContext(1, repositories), false, false);
+		super(createContext(true, repositories), false, false);
 
 		this.imageID = imageID;
 		this.targets = targets;
@@ -43,7 +43,7 @@ public class GetPreviewFromRepository extends RepositoryActivity {
 
 	public GetPreviewFromRepository(ImageIdentifier imageID, int red, int green, int blue,
 			String repository, ActivityIdentifier... targets) {
-		super(createContext(1, repository), false, false);
+		super(createContext(true, repository), false, false);
 		this.imageID = imageID;
 		this.targets = targets;
 		this.red = red;

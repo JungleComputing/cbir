@@ -45,6 +45,9 @@ public class GetDataAndQueryJob extends Activity {
 		@Override
 		public int compare(MatchTable o1, MatchTable o2) {
 			// put null items at the end
+			if(o1 == null && o2 == null) {
+				return 0;
+			}
 			if (o1 == null) {
 				return 1;
 			}

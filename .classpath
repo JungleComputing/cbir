@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/constellation"/>
+	<classpathentry kind="lib" path="external/constellation/commons-jxpath-1.1.jar"/>
+	<classpathentry kind="lib" path="external/constellation/commons-logging-api.jar"/>
+	<classpathentry kind="lib" path="external/constellation/commons-logging.jar"/>
+	<classpathentry kind="lib" path="external/constellation/constellation-0.7.0.jar" sourcepath="/constellation"/>
+	<classpathentry kind="lib" path="external/constellation/jstun-0.6.1.jar"/>
+	<classpathentry kind="lib" path="external/constellation/log4j-1.2.13.jar"/>
+	<classpathentry kind="lib" path="external/constellation/sbbi-upnplib-1.0.2.jar"/>
+	<classpathentry kind="lib" path="external/constellation/slf4j-api-1.5.3.jar"/>
+	<classpathentry kind="lib" path="external/constellation/slf4j-log4j12-1.5.3.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/ibis-deploy"/>
+	<classpathentry kind="lib" path="external/GAT/GAT-API.jar"/>
+	<classpathentry kind="lib" path="external/GAT/GAT-engine.jar"/>
+	<classpathentry kind="lib" path="external/GAT/GAT-tests.jar"/>
+	<classpathentry kind="lib" path="external/constellation/antenna-bin-1.0.0.jar"/>
+	<classpathentry kind="lib" path="external/constellation/bcel-5.3-SNAPSHOT-1000411.jar"/>
+	<classpathentry kind="lib" path="external/constellation/ibis-compile-2.3-pre.jar"/>
+	<classpathentry kind="lib" path="external/constellation/ibis-io-2.3-pre.jar"/>
+	<classpathentry kind="lib" path="external/constellation/ibis-util-2.3-pre.jar"/>
+	<classpathentry kind="lib" path="external/constellation/ipl-2.3-pre.jar"/>
+	<classpathentry kind="lib" path="external/constellation/ipl-impl-2.3-pre.jar"/>
+	<classpathentry kind="lib" path="external/constellation/ipl-impl-dummy-2.3-pre.jar"/>
+	<classpathentry kind="lib" path="external/constellation/ipl-impl-lrmc-2.3-pre.jar"/>
+	<classpathentry kind="lib" path="external/constellation/ipl-impl-multi-2.3-pre.jar"/>
+	<classpathentry kind="lib" path="external/constellation/ipl-impl-nio-2.3-pre.jar"/>
+	<classpathentry kind="lib" path="external/constellation/ipl-impl-smartsockets-2.3-pre.jar"/>
+	<classpathentry kind="lib" path="external/constellation/ipl-impl-tcp-2.3-pre.jar"/>
+	<classpathentry kind="lib" path="external/constellation/ipl-support-2.3-pre.jar"/>
+	<classpathentry kind="lib" path="external/constellation/juds-0.94-universal.jar"/>
+	<classpathentry kind="lib" path="external/constellation/smartsockets-1.62.jar"/>
+	<classpathentry kind="lib" path="external/constellation/TGGraphLayout-ibis-1.58.jar"/>
+	<classpathentry kind="lib" path="external/constellation/trilead-ssh2-r13339-CJ.jar"/>
+	<classpathentry kind="lib" path="/home/timo/javafx-sdk2.2.0-beta/rt/lib/jfxrt.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="file:/home/timo/javafx-sdk2.2.0-beta/docs/api/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="output" path="build-eclipse"/>
+</classpath>

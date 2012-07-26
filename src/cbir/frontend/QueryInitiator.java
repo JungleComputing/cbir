@@ -4,8 +4,6 @@ import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.StealPool;
 import ibis.constellation.WorkerContext;
 
-import java.util.Set;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +32,7 @@ public class QueryInitiator extends RepositoryExecutor {
 
 	private final String[] stores;
 
-	private MultiArchiveIndex index;
+	private volatile MultiArchiveIndex index;
 	private long indexUpdateTime;
 
 	public QueryInitiator(String repositoryName, String[] stores,
@@ -48,24 +46,24 @@ public class QueryInitiator extends RepositoryExecutor {
 	@Override
 	public void run() {
 		//Start a thread that periodically updates the index first
-		Thread indexUpdater = new Thread() {
-			long updateStartTime = 0;
-			public void run() {
-				while (true) {
-					submit(new GetImageCollection(null, getStores()));
-					updateStartTime = System.currentTimeMillis();
-					for(long update = getIndexUpdateTime(); update < updateStartTime || update + 10000 < System.currentTimeMillis();) {
-						try {
-							Thread.sleep(10000);
-						} catch (InterruptedException e) {
-							//ignore
-						}
-					}
-				}
-			}
-		};
-		indexUpdater.setDaemon(true);
-		indexUpdater.start();
+//		Thread indexUpdater = new Thread() {
+//			long updateStartTime = 0;
+//			public void run() {
+//				while (true) {
+//					submit(new GetImageCollection(null, getStores()));
+//					updateStartTime = System.currentTimeMillis();
+//					for(long update = getIndexUpdateTime(); update < updateStartTime || update + 10000 < System.currentTimeMillis();) {
+//						try {
+//							Thread.sleep(10000);
+//						} catch (InterruptedException e) {
+//							//ignore
+//						}
+//					}
+//				}
+//			}
+//		};
+//		indexUpdater.setDaemon(true);
+//		indexUpdater.start();
 
 		super.run();
 	}
@@ -87,10 +85,10 @@ public class QueryInitiator extends RepositoryExecutor {
 			searchScope = getImageIndex();
 		}
 
-		Set<String> stores = getImageIndex().getStoresFor(imageID);
-
+		String[] stores = getImageIndex().getStoresFor(imageID);
+		
 		GetDataAndQueryJob job = new GetDataAndQueryJob(imageID,
-				stores.toArray(new String[stores.size()]), searchScope,
+				stores, searchScope,
 				Config.nResults, Config.batchSize, destination);
 		submit(job);
 	}
@@ -106,6 +104,11 @@ public class QueryInitiator extends RepositoryExecutor {
 
 	public void getImage(ImageIdentifier imageID, String[] stores,
 			ActivityIdentifier destination) {
+		submit(new GetImageFromStore(imageID, stores, destination));
+	}
+	
+	public void getImage(ImageIdentifier imageID, ActivityIdentifier destination) {
+		String[] stores = index.getStoresForOriginalImage(imageID);
 		submit(new GetImageFromStore(imageID, stores, destination));
 	}
 

@@ -64,7 +64,7 @@ public class ExecutorFactory {
 					StealPools.CommandPool, new OrWorkerContext(unit, true), useGpu);
 		} else {
 			return new QueryInitiator(initiatorName, stores, ops, new StealPool(pools),
-					StealPool.NONE, new OrWorkerContext(unit, true), useGpu);
+					StealPools.None, new OrWorkerContext(unit, true), useGpu);
 		}
 	}
 
@@ -86,13 +86,13 @@ public class ExecutorFactory {
 					new UnitWorkerContext(ContextStrings.CPU_KERNEL) };
 		}
 
-		return new QueryExecutor(cache, StealPools.QueryPool,
+		return new QueryExecutor(cache, StealPools.None,
 				StealPools.QueryPool, new OrWorkerContext(unit, true), useGpu);
 	}
 
 	public MetadataCache createMetadataCache(String storeName) {
 		return new MetadataCacheImpl(storeName,
-				StealPools.MetadataStoreClients(storeName), StealPool.NONE,
+				StealPools.MetadataStoreClients(storeName), StealPools.None,
 				new UnitWorkerContext(
 						ContextStrings.createForStoreWorker(storeName)));
 	}
@@ -146,8 +146,11 @@ public class ExecutorFactory {
 		}
 		WorkerContext context = new OrWorkerContext(unit, true);
 
+//		return new RepositoryExecutor(repositoryName, ops, repositoryPool,
+//				new StealPool(repositoryPool, repositoryClientPool), context,
+//				useGpu);
 		return new RepositoryExecutor(repositoryName, ops, repositoryPool,
-				new StealPool(repositoryPool, repositoryClientPool), context,
+				repositoryClientPool, context,
 				useGpu);
 	}
 

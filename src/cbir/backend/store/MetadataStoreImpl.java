@@ -1,5 +1,6 @@
 package cbir.backend.store;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -79,11 +80,11 @@ public class MetadataStoreImpl implements MetadataStore {
 	}
 	
 	@Override
-	public void put(Metadata metadata, String location) {
+	public void put(Metadata metadata, String... locations) {
 		writeLock.lock();
 		try {
 			store.put(metadata.getImageID(), metadata);
-			imageIndex.add(metadata.getImageID(), location);
+			imageIndex.addAll(metadata.getImageID(), Arrays.asList(locations));
 		} finally {
 			writeLock.unlock();
 		}
@@ -111,7 +112,6 @@ public class MetadataStoreImpl implements MetadataStore {
 
 	@Override
 	public String[] getRepositoriesFor(ImageIdentifier imageID) {
-		Set<String> storeList = imageIndex.getStoresFor(imageID);
-		return storeList.toArray(new String[storeList.size()]);
+		return imageIndex.getStoresFor(imageID);
 	}
 }

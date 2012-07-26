@@ -25,5 +25,6 @@ public class StealPools {
 	
 	public static final StealPool QueryPool = new StealPool("QUERY");
 	public static final StealPool CommandPool = new StealPool("COMMAND");
+	public static final StealPool None = StealPool.NONE;
 	
 }

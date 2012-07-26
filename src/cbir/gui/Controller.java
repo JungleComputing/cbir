@@ -58,6 +58,10 @@ public class Controller {
 		submit(new GetImageCommand(imageID, stores));
 	}
 	
+	public void requestImage(ImageIdentifier imageID) {
+		submit(new GetImageCommand(imageID));
+	}
+	
 	public void requestPreviewImage(ImageIdentifier imageID, int red, int green, int blue, String... stores) {
 		submit(new GetPreviewCommand(imageID, red, green, blue, stores));
 	}

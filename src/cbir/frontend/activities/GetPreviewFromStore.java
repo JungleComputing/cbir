@@ -18,7 +18,7 @@ public class GetPreviewFromStore extends StoreActivity {
 	
 	
 	public GetPreviewFromStore(ImageIdentifier imageID, int red, int green, int blue, String[] stores, ActivityIdentifier destination) {
-		super(false, false, stores);
+		super(true, false, false, stores);
 		this.destination = destination;
 		this.imageID = imageID;
 		this.red = red;

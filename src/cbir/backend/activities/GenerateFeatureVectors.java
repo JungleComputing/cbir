@@ -38,7 +38,7 @@ public class GenerateFeatureVectors extends RepositoryActivity {
 
 	public GenerateFeatureVectors(EnviHeader header, String[] repositories,
 			ActivityIdentifier... targets) {
-		super(createContext(repositories), false, true);
+		super(createContext(false, repositories), false, true);
 		this.targets = targets;
 		this.header = header;
 		image = null;

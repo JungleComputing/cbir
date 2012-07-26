@@ -140,6 +140,10 @@ public class EnviHeader implements Serializable {
 	public String[] getBandnames() {
 		return bandnames;
 	}
+	
+	public float[] getWavelengths() {
+		return wavelengths;
+	}
 
 	public Interleave getInterleave() {
 		return interleave;

@@ -32,7 +32,7 @@ public class GetImageFromRepository extends RepositoryActivity {
 
 	public GetImageFromRepository(ImageIdentifier imageID, String[] repositories,
 			ActivityIdentifier... targets) {
-		super(createContext(repositories), false, false);
+		super(createContext(true, repositories), false, false);
 
 		this.imageID = imageID;
 		this.targets = targets;
@@ -40,7 +40,7 @@ public class GetImageFromRepository extends RepositoryActivity {
 
 	public GetImageFromRepository(ImageIdentifier imageID, String repository,
 			ActivityIdentifier... targets) {
-		super(createContext(repository), false, false);
+		super(createContext(true, repository), false, false);
 		this.imageID = imageID;
 		this.targets = targets;
 	}

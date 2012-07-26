@@ -1,6 +1,7 @@
 package cbir.backend;
 
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map.Entry;
@@ -63,7 +64,7 @@ public class MultiArchiveIndex implements Serializable {
 		imageSet.add(imageID);
 	}
 	
-	public void addAll(ImageIdentifier imageID, Set<String> newStores) {
+	public void addAll(ImageIdentifier imageID, Collection<String> newStores) {
 		// retrieve previously known stores containing this image
 		Set<String> stores = UUIDIndex.get(imageID);
 		if (stores == null) {
@@ -111,12 +112,22 @@ public class MultiArchiveIndex implements Serializable {
 		return true;
 	}
 	
-	public Set<String> getStoresFor(ImageIdentifier imageID) {
-		return UUIDIndex.get(imageID);
+	public String[] getStoresFor(ImageIdentifier imageID) {
+		Set<String> stores = UUIDIndex.get(imageID);
+		if(stores == null) {
+			return new String[0];
+		} else {
+			return stores.toArray(new String[stores.size()]);
+		}
 	}
 	
-	public Set<String> getStoresForOriginalImage(ImageIdentifier imageID) {
-		return UUIDIndex.get(new ImageIdentifier(imageID.getBaseImageUuid()));
+	public String[] getStoresForOriginalImage(ImageIdentifier imageID) {
+		Set<String> stores = UUIDIndex.get(new ImageIdentifier(imageID.getBaseImageUuid()));
+		if(stores == null) {
+			return new String[0];
+		} else {
+			return stores.toArray(new String[stores.size()]);
+		}
 	}
 
 	public HashMap<Set<String>, Set<ImageIdentifier>> getElementsByArchive() {

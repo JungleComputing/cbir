@@ -14,7 +14,7 @@ public class GetImageFromStore extends StoreActivity {
 	private ActivityIdentifier destination;
 	
 	public GetImageFromStore(ImageIdentifier imageID, String[] stores, ActivityIdentifier destination) {
-		super(false, false, stores);
+		super(true, false, false, stores);
 		this.destination = destination;
 		this.imageID = imageID;
 	}

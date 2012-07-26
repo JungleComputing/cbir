@@ -1,12 +1,14 @@
-package cbir.gui;
+package cbir.gui.panels;
 
 import java.util.ArrayList;
 
 import javax.swing.AbstractListModel;
+import javax.swing.JPopupMenu;
 
 import cbir.MatchTable;
 import cbir.envi.ImageIdentifier;
 import cbir.envi.PreviewImage;
+import cbir.gui.Gui;
 
 public class ResultsListModel extends AbstractListModel<ResultElement> {
 	
@@ -45,7 +47,7 @@ public class ResultsListModel extends AbstractListModel<ResultElement> {
 		fireIntervalAdded(this, index, index);
 	}
 
-	protected void deliverPreview(PreviewImage preview) {
+	public void deliverPreview(PreviewImage preview) {
 		int i = 0;
 		ImageIdentifier id = preview.getImageID();
 		for(ResultElement element: contents) {
@@ -58,17 +60,18 @@ public class ResultsListModel extends AbstractListModel<ResultElement> {
 		
 	}
 
-	public void updateResults(MatchTable[] matchData) {
+	public void updateResults(MatchTable[] matchData, Gui gui) {
 		clear();
 		for(MatchTable table: matchData) {
 			if(table != null) {
-				contents.add(new ResultElement(table));
+				contents.add(new ResultElement(table, gui));
+				
 			}
 		}
 		fireIntervalAdded(this, 0, contents.size()-1);
 	}
 
-	protected ResultElement[] getContents() {
+	public ResultElement[] getContents() {
 		return contents.toArray(new ResultElement[contents.size()]);
 	}
 	

@@ -20,7 +20,7 @@ public class GetStoreIndex extends StoreActivity {
 	private final ActivityIdentifier target;
 
 	protected GetStoreIndex(String storeName, ActivityIdentifier target) {
-		super(false, false, storeName);
+		super(true, false, false, storeName);
 		this.target = target;
 	}
 

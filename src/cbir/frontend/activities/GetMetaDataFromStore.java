@@ -16,7 +16,7 @@ public class GetMetaDataFromStore extends StoreActivity {
 
 	public GetMetaDataFromStore(ImageIdentifier imageID, String[] stores,
 			ActivityIdentifier destination) {
-		super(false, false, stores);
+		super(true, false, false, stores);
 		this.destination = destination;
 		this.imageID = imageID;
 	}

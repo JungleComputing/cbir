@@ -12,7 +12,7 @@ public interface MetadataStore {
 	boolean contains(ImageIdentifier imageID);
 	SingleArchiveIndex contents();
 	void put(Metadata metadata, Set<String> originalLocations);
-	void put(Metadata metadata, String originalLocation);
+	void put(Metadata metadata, String... originalLocations);
 	int size();
 	
 }

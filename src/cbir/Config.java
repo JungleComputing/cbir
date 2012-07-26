@@ -10,5 +10,8 @@ public class Config {
 	public static String spcaVectorFile = null;
 	
 	public static int batchSize = 40;
-	public static int nResults = 10;
+	public static int nResults = 30;
+	
+	public static final int GUI_WIDTH = 1060;
+	public static final int GUI_HEIGHT = 768;
 }
