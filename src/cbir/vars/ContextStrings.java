@@ -29,4 +29,8 @@ public class ContextStrings {
 	public static String createForStoreWorker(String storeName) {
 		return "STOREWORKER<" + storeName + ">";
 	}
+	
+	public static String createForCache(String storeName) {
+		return "CACHE<" + storeName + ">";
+	}
 }

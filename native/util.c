@@ -225,8 +225,8 @@ void normalize_X(float *X, int num_lines, int num_samples, int num_bands) {
 
 //generates random numbers for N-Findr endmember initialization
 void generarAleatorios(float *aleatorios, int n) {
-//	srand(time(NULL));
-	srand(10);
+	srand(time(NULL));
+//	srand(10);
 	int i;
 	//Generamos a con numeros aleatorios entre 0 y 1
 
@@ -239,8 +239,8 @@ void generarAleatorios(float *aleatorios, int n) {
 }
 
 void generarAleatoriosNfindr(int *aleatorios, int n, int lines_samples) {
-//	srand(time(NULL)); //Asignar semilla
-	srand(10);
+	srand(time(NULL)); //Asignar semilla
+//	srand(10);
 	int i;
 	for (i = 0; i < n; i++) {
 		aleatorios[i] = rand() % lines_samples;

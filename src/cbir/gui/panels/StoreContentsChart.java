@@ -30,12 +30,14 @@ public class StoreContentsChart extends JFXPanel {
 	 * 
 	 */
 	private static final long serialVersionUID = -422753755081812750L;
-	private static final int TICKS_DIVISOR = 5;
+	private static final long TICKS_DIVISOR = 5;
+	private static final long X_SIZE_INCREASE = 5;
+	private static final long Y_SIZE_INCREASE = 500;
 
 	private LineChart chart;
 	ObservableList<XYChart.Data<Float, Integer>> storeSeries;
 	long startTime;
-	private NumberAxis xAxis;
+	private NumberAxis xAxis, yAxis;
 
 	public StoreContentsChart() {
 		super();
@@ -46,6 +48,12 @@ public class StoreContentsChart extends JFXPanel {
 		startTime = -1;
 		storeSeries = FXCollections.observableArrayList();
 		// create timeline to add new data every 60th of second
+		
+		xAxis = new NumberAxis(0, X_SIZE_INCREASE, X_SIZE_INCREASE/TICKS_DIVISOR);
+		xAxis.setLabel("Time (m)");
+		yAxis = new NumberAxis(0, Y_SIZE_INCREASE, Y_SIZE_INCREASE/TICKS_DIVISOR);
+		yAxis.setLabel("# images");
+		
 		Platform.runLater(new Runnable() {
 			@Override
 			public void run() {
@@ -65,8 +73,12 @@ public class StoreContentsChart extends JFXPanel {
 				}
 				float time = ((float)(currentTime-startTime))/60000f;
 				if(time > xAxis.getUpperBound()) {
-					xAxis.setUpperBound(5+xAxis.getUpperBound());
+					xAxis.setUpperBound(X_SIZE_INCREASE+xAxis.getUpperBound());
 					xAxis.setTickUnit(xAxis.getUpperBound()/TICKS_DIVISOR);
+				}
+				if(elements > yAxis.getUpperBound()) {
+					yAxis.setUpperBound((elements/Y_SIZE_INCREASE +1) * Y_SIZE_INCREASE);
+					yAxis.setTickUnit(yAxis.getUpperBound()/TICKS_DIVISOR);
 				}
 				storeSeries.add(new XYChart.Data<Float, Integer>(time,
 						elements));
@@ -98,11 +110,7 @@ public class StoreContentsChart extends JFXPanel {
 //		Group root = new Group();
 //		Scene scene = new Scene(root, getPreferredSize().width, getPreferredSize().height);
 
-		xAxis = new NumberAxis(0, 5, 5/TICKS_DIVISOR);
-		xAxis.setLabel("Time (m)");
-		NumberAxis yAxis = new NumberAxis();
-		yAxis.setLabel("# images");
-		yAxis.setTickUnit(10);
+
 		ObservableList<XYChart.Series<Float, Integer>> lineChartData = FXCollections
 				.observableArrayList(new XYChart.Series<Float, Integer>(
 						"Store Contents", storeSeries));

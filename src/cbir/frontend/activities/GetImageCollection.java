@@ -3,7 +3,6 @@ package cbir.frontend.activities;
 import ibis.constellation.Activity;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
-import ibis.constellation.context.UnitActivityContext;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +11,7 @@ import cbir.backend.MultiArchiveIndex;
 import cbir.backend.store.StoreIndexMessage;
 import cbir.events.StoreIndexEvent;
 import cbir.frontend.QueryInitiator;
+import cbir.vars.CBIRActivityContext;
 import cbir.vars.ContextStrings;
 
 public class GetImageCollection extends Activity {
@@ -28,8 +28,8 @@ public class GetImageCollection extends Activity {
 
 	public GetImageCollection(ActivityIdentifier target, String... stores) {
 		super(
-				new UnitActivityContext(
-						ContextStrings.QUERY_INITIATOR), true, true);
+				new CBIRActivityContext(
+						ContextStrings.QUERY_INITIATOR, true), true, true);
 		this.target = target;
 		this.stores = stores;
 	}

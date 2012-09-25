@@ -14,7 +14,7 @@ import cbir.envi.ImageIdentifier;
  * @author Timo van Kessel
  * 
  */
-public class CreateTilesAndGetFeatureVectors extends RepositoryActivity {
+public class CreateTilesAndGetFeatureVectors extends RepositoryMasterActivity {
 
 	private static final Logger logger = LoggerFactory
 			.getLogger(CreateTilesAndGetFeatureVectors.class);
@@ -60,7 +60,7 @@ public class CreateTilesAndGetFeatureVectors extends RepositoryActivity {
 	public void initialize() throws Exception {
 		RepositoryExecutor e = getExecutor();
 		
-		EnviHeader header = e.getHeader(imageID);
+		EnviHeader header = e.getHeader(imageID, repositories);
 		EnviHeader[] tiles = header.createTiles(tileWidth, tileHeight);
 		for(EnviHeader tile: tiles) {
 			e.submit(new GenerateFeatureVectors(tile, repositories, targets));

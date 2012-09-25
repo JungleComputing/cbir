@@ -15,7 +15,7 @@ import cbir.events.FloatImageEvent;
  * @author Timo van Kessel
  * 
  */
-public class GetImageFromRepository extends RepositoryActivity {
+public class GetImageFromRepository extends RepositoryMasterActivity {
 
 	private static final Logger logger = LoggerFactory
 			.getLogger(GetImageFromRepository.class);
@@ -28,6 +28,7 @@ public class GetImageFromRepository extends RepositoryActivity {
 
 	private ImageIdentifier imageID;
 	private ActivityIdentifier[] targets;
+	private String[] repositories;
 
 
 	public GetImageFromRepository(ImageIdentifier imageID, String[] repositories,
@@ -36,6 +37,7 @@ public class GetImageFromRepository extends RepositoryActivity {
 
 		this.imageID = imageID;
 		this.targets = targets;
+		this.repositories = repositories.clone();
 	}
 
 	public GetImageFromRepository(ImageIdentifier imageID, String repository,
@@ -43,12 +45,13 @@ public class GetImageFromRepository extends RepositoryActivity {
 		super(createContext(true, repository), false, false);
 		this.imageID = imageID;
 		this.targets = targets;
+		this.repositories = new String[] {repository};
 	}
 
 	@Override
 	public void initialize() throws Exception {
 		RepositoryExecutor e = getExecutor();
-		FloatImage result = e.getImage(e.getHeader(imageID));
+		FloatImage result = e.getImage(e.getHeader(imageID, repositories));
 		for(ActivityIdentifier target: targets) {
 			e.send(new FloatImageEvent(identifier(), target, result));
 		}

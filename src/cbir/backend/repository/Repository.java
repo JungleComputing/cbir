@@ -11,13 +11,13 @@ import cbir.envi.PreviewImage;
  */
 public interface Repository {
 	
-	String getName();
+//	String getName();
 	
-	EnviHeader getHeader(ImageIdentifier imageID);
+	EnviHeader getHeader(ImageIdentifier imageID, String... repositories);
 	
-	FloatImage getImage(EnviHeader header);
+	FloatImage getImage(EnviHeader header, String... repositories);
 
-	PreviewImage getPreview(EnviHeader header, int red, int green, int blue);
+	PreviewImage getPreview(EnviHeader header, int red, int green, int blue, String... repositories);
 
 	
 }

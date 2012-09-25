@@ -2,11 +2,11 @@ package cbir.backend.activities;
 
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
-import ibis.constellation.context.UnitActivityContext;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import cbir.vars.CBIRActivityContext;
 import cbir.vars.ContextStrings;
 
 /**
@@ -22,8 +22,8 @@ public class GetRepositoryContents extends RepositoryMasterActivity {
 
 	public GetRepositoryContents(String repositoryName,
 			ActivityIdentifier... targets) {
-		super(new UnitActivityContext(
-				ContextStrings.createForRepositoryMaster(repositoryName)),
+		super(new CBIRActivityContext(
+				ContextStrings.createForRepositoryMaster(repositoryName), true),
 				false, false);
 		this.targets = targets;
 	}

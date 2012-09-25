@@ -95,8 +95,8 @@ public class Kernels {
 	}
 	
 	public float[] spca(float[] inputImage, int numLines, int numSamples,
-			int numBands, int linesSamples, int numPrincipalComponents, boolean generate, String randomVectorFile, int numIterations) {
-		return spca.exec(inputImage, numLines, numSamples, numBands, linesSamples, numPrincipalComponents, generate, randomVectorFile, numIterations);
+			int numBands, int linesSamples, int numPrincipalComponents, boolean generate, String randomVectorFile, boolean fixedNumIterations, int numIterations) {
+		return spca.exec(inputImage, numLines, numSamples, numBands, linesSamples, numPrincipalComponents, generate, randomVectorFile, fixedNumIterations, numIterations);
 	}
 
 	public Endmember[] getEndmembers(float[] image, int[] P, int numBands,

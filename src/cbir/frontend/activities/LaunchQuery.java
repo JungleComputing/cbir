@@ -4,7 +4,6 @@ import ibis.constellation.Activity;
 import ibis.constellation.ActivityContext;
 import ibis.constellation.Event;
 import ibis.constellation.context.OrActivityContext;
-import ibis.constellation.context.UnitActivityContext;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -20,6 +19,7 @@ import cbir.MatchTable;
 import cbir.backend.MultiArchiveIndex;
 import cbir.envi.ImageIdentifier;
 import cbir.metadata.Metadata;
+import cbir.vars.CBIRActivityContext;
 import cbir.vars.ContextStrings;
 
 public class LaunchQuery extends Activity {
@@ -72,8 +72,8 @@ public class LaunchQuery extends Activity {
 
 	private LaunchQuery(Metadata query, MultiArchiveIndex searchScope,
 			int results, int batchSize) {
-		super(new UnitActivityContext(
-				ContextStrings.QUERY_INITIATOR),
+		super(new CBIRActivityContext(
+				ContextStrings.QUERY_INITIATOR, true),
 				true, true);
 		this.tables = new MatchTable[results * 2];
 		this.searchScope = searchScope;
@@ -98,11 +98,11 @@ public class LaunchQuery extends Activity {
 			if(logger.isDebugEnabled()) {
 				logger.debug("Creating QueryBatches");
 			}
-			for (Entry<Set<String>, Set<ImageIdentifier>> databaseEntry : searchScope
+			for (Entry<HashSet<String>, Set<ImageIdentifier>> databaseEntry : searchScope
 					.getElementsByArchive().entrySet()) {
 
 				ActivityContext context = createContextForBatch(
-						databaseEntry.getKey());
+						databaseEntry.getKey(), true);
 				Set<ImageIdentifier> images = new HashSet<ImageIdentifier>();
 	
 				for (ImageIdentifier imageID : databaseEntry.getValue()) {
@@ -213,25 +213,25 @@ public class LaunchQuery extends Activity {
 		return Arrays.copyOf(tables, results);
 	}
 
-	private ActivityContext createStoreWorkerContext(String[] stores) {
+	private ActivityContext createStoreWorkerContext(String[] stores, boolean interactive) {
 		if (stores.length == 1) {
-			return new UnitActivityContext(
-					ContextStrings.createForStoreWorker(stores[0]));
+			return new CBIRActivityContext(
+					ContextStrings.createForStoreWorker(stores[0]), interactive);
 		}
-		UnitActivityContext[] contexts = new UnitActivityContext[stores.length];
+		CBIRActivityContext[] contexts = new CBIRActivityContext[stores.length];
 		int i = 0;
 		for (String store : stores) {
-			contexts[i] = new UnitActivityContext(
-					ContextStrings.createForStoreWorker(store));
+			contexts[i] = new CBIRActivityContext(
+					ContextStrings.createForStoreWorker(store), interactive);
 			i++;
 		}
 
 		return new OrActivityContext(contexts, false);
 	}
 
-	private ActivityContext createContextForBatch(Set<String> stores) {
+	private ActivityContext createContextForBatch(Set<String> stores, boolean interactive) {
 		
-		return createStoreWorkerContext(stores.toArray(new String[stores.size()]));
+		return createStoreWorkerContext(stores.toArray(new String[stores.size()]), interactive);
 	}
 
 }

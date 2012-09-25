@@ -1,13 +1,11 @@
 package cbir.kernels.activities;
 
-import ibis.constellation.Activity;
 import ibis.constellation.ActivityContext;
-import ibis.constellation.ActivityIdentifier;
-import ibis.constellation.Event;
+import cbir.CBIRActivity;
 import cbir.kernels.KernelExecutor;
 import cbir.kernels.Kernels;
 
-public abstract class KernelActivity extends Activity {
+public abstract class KernelActivity extends CBIRActivity {
 
 	/**
 	 * 
@@ -26,14 +24,6 @@ public abstract class KernelActivity extends Activity {
 
 	protected Kernels getKernels() {
 		return getExecutor().getKernels();
-	}
-
-	protected <T> void send(T payload, ActivityIdentifier... targets) {
-		if (targets != null) {
-			for (ActivityIdentifier target : targets) {
-				getExecutor().send(new Event(identifier(), target, payload));
-			}
-		}
 	}
 
 }

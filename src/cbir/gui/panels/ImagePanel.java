@@ -14,8 +14,9 @@ public class ImagePanel extends JPanel {
 	 */
 	private static final long serialVersionUID = 8797681774859111758L;
 	private BufferedImage image;
+	private String name;
 
-	public ImagePanel() {
+	private ImagePanel() {
 		setPreferredSize(new Dimension(100, 100));
 		setMinimumSize(getPreferredSize());
 	}
@@ -24,6 +25,11 @@ public class ImagePanel extends JPanel {
 		this();
 		setImage(image);
 	}
+	
+	public ImagePanel(String noImageMessage) {
+            this();
+            this.name = noImageMessage;
+    }
 
 	public void setImage(BufferedImage image) {
 		this.image = image;
@@ -51,7 +57,7 @@ public class ImagePanel extends JPanel {
 			g.drawImage(image, hOffset, vOffset, this);
 		} else {
 			g.setColor(Color.PINK);
-			g.drawString("no file loaded", 20, 20);
+			g.drawString(name, 10, 20);
 		}
 	}
 }

@@ -5,6 +5,7 @@ import ibis.constellation.context.OrActivityContext;
 import ibis.constellation.context.UnitActivityContext;
 import cbir.backend.repository.RepositoryExecutor;
 import cbir.kernels.activities.KernelActivity;
+import cbir.vars.CBIRActivityContext;
 import cbir.vars.ContextStrings;
 
 public abstract class RepositoryActivity extends KernelActivity {
@@ -18,21 +19,16 @@ public abstract class RepositoryActivity extends KernelActivity {
 //		return createContext(UnitActivityContext.DEFAULT_RANK, repositories);
 //	}
 	
-	
-	private static final long getRank(boolean interactive) {
-		return interactive? 2:1;
-	}
-	
-	protected static final ActivityContext createContext(boolean interactive, String... repositories) {
+	protected static ActivityContext createContext(boolean interactive, String... repositories) {
 		if (repositories == null || repositories.length == 0) {
 			throw new IllegalArgumentException("At least one repository needed");
 		} else if (repositories.length == 1) {
-			return new UnitActivityContext(ContextStrings.createForRepository(repositories[0]), getRank(interactive));
+			return new CBIRActivityContext(ContextStrings.createForRepository(repositories[0]), interactive);
 		} else {
 			UnitActivityContext[] contexts = new UnitActivityContext[repositories.length];
 			for (int i = 0; i < repositories.length; i++) {
-				contexts[i] = new UnitActivityContext(
-						ContextStrings.createForRepository(repositories[i]),getRank(interactive));
+				contexts[i] = new CBIRActivityContext(
+						ContextStrings.createForRepository(repositories[i]), interactive);
 			}
 			return new OrActivityContext(contexts);
 		}

@@ -13,7 +13,7 @@
 	<classpathentry kind="lib" path="external/constellation/slf4j-api-1.5.3.jar"/>
 	<classpathentry kind="lib" path="external/constellation/slf4j-log4j12-1.5.3.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/ibis-deploy"/>
-	<classpathentry kind="lib" path="external/GAT/GAT-API.jar"/>
+	<classpathentry kind="lib" path="external/GAT/GAT-API.jar" sourcepath="/javagat/api"/>
 	<classpathentry kind="lib" path="external/GAT/GAT-engine.jar"/>
 	<classpathentry kind="lib" path="external/GAT/GAT-tests.jar"/>
 	<classpathentry kind="lib" path="external/constellation/antenna-bin-1.0.0.jar"/>
@@ -39,5 +39,6 @@
 			<attribute name="javadoc_location" value="file:/home/timo/javafx-sdk2.2.0-beta/docs/api/"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry combineaccessrules="false" kind="src" path="/javagat"/>
 	<classpathentry kind="output" path="build-eclipse"/>
 </classpath>

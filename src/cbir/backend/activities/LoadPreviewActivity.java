@@ -6,17 +6,19 @@ import ibis.constellation.Event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import cbir.backend.repository.RepositoryExecutor;
 import cbir.envi.ImageIdentifier;
+import cbir.envi.PreviewImage;
+import cbir.events.PreviewImageEvent;
 
 /**
  * @author Timo van Kessel
  * 
  */
-public class GetPreviewFromRepository extends RepositoryMasterActivity {
-    // TODO convert this one into a batch operation?
+public class LoadPreviewActivity extends RepositoryActivity {
 
     private static final Logger logger = LoggerFactory
-            .getLogger(GetPreviewFromRepository.class);
+            .getLogger(LoadPreviewActivity.class);
 
     /**
 	 * 
@@ -26,11 +28,11 @@ public class GetPreviewFromRepository extends RepositoryMasterActivity {
     private final ActivityIdentifier[] targets;
     private final ImageIdentifier imageID;
     private final int red, green, blue;
-    private final String[] repositories;
 
-    public GetPreviewFromRepository(ImageIdentifier imageID, int red,
-            int green, int blue, String[] repositories,
-            ActivityIdentifier... targets) {
+    private String[] repositories;
+
+    public LoadPreviewActivity(ImageIdentifier imageID, int red, int green,
+            int blue, String[] repositories, ActivityIdentifier... targets) {
         super(createContext(true, repositories), false, false);
 
         this.imageID = imageID;
@@ -38,26 +40,29 @@ public class GetPreviewFromRepository extends RepositoryMasterActivity {
         this.red = red;
         this.green = green;
         this.blue = blue;
-        this.repositories = repositories;
+        this.repositories = repositories.clone();
     }
 
-    public GetPreviewFromRepository(ImageIdentifier imageID, int red,
-            int green, int blue, String repository,
-            ActivityIdentifier... targets) {
+    public LoadPreviewActivity(ImageIdentifier imageID, int red, int green,
+            int blue, String repository, ActivityIdentifier... targets) {
         super(createContext(true, repository), false, false);
         this.imageID = imageID;
         this.targets = targets;
         this.red = red;
         this.green = green;
         this.blue = blue;
-        repositories = new String[] { repository };
+        this.repositories = new String[] { repository };
     }
 
     @Override
     public void initialize() throws Exception {
-        getExecutor().submit(
-                new LoadPreviewActivity(imageID, red, green, blue,
-                        repositories, targets));
+        RepositoryExecutor e = getExecutor();
+
+        PreviewImage result = e.getPreview(e.getHeader(imageID, repositories), red, green,
+                blue, repositories);
+        for (ActivityIdentifier target : targets) {
+            e.send(new PreviewImageEvent(identifier(), target, result));
+        }
         finish();
     }
 

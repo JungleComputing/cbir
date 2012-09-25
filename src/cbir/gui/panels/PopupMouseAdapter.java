@@ -28,8 +28,10 @@ public final class PopupMouseAdapter extends MouseAdapter {
 	private void maybeShowPopup(MouseEvent e) {
 		if (e.isPopupTrigger()) {
 //			System.out.println("show popup");
+			JList<ResultElement> list = (JList<ResultElement>)(e.getComponent());
 			
-			ResultElement re = ((JList<ResultElement>)(e.getComponent())).getSelectedValue();
+			list.setSelectedIndex(list.locationToIndex(e.getPoint())); // select the item we are currently hovering over
+			ResultElement re = list.getSelectedValue();
 			if(re != null) {
 				popup.setSelectedItem(re);
 			}

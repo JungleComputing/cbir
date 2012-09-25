@@ -5,7 +5,6 @@ import ibis.constellation.ActivityContext;
 import ibis.constellation.ActivityIdentifier;
 import ibis.constellation.Event;
 import ibis.constellation.context.OrActivityContext;
-import ibis.constellation.context.UnitActivityContext;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -22,6 +21,7 @@ import cbir.backend.MultiArchiveIndex;
 import cbir.envi.ImageIdentifier;
 import cbir.events.QueryResultEvent;
 import cbir.metadata.Metadata;
+import cbir.vars.CBIRActivityContext;
 import cbir.vars.ContextStrings;
 
 public class GetDataAndQueryJob extends Activity {
@@ -45,7 +45,7 @@ public class GetDataAndQueryJob extends Activity {
 		@Override
 		public int compare(MatchTable o1, MatchTable o2) {
 			// put null items at the end
-			if(o1 == null && o2 == null) {
+			if (o1 == null && o2 == null) {
 				return 0;
 			}
 			if (o1 == null) {
@@ -76,11 +76,11 @@ public class GetDataAndQueryJob extends Activity {
 	private int batches;
 	private ActivityIdentifier[] destinations;
 
-	public GetDataAndQueryJob(ImageIdentifier queryImage, String[] queryLocations,
-			MultiArchiveIndex searchScope, int results, int batchSize,
-			ActivityIdentifier... destinations) {
-		super(new UnitActivityContext(ContextStrings.QUERY_INITIATOR), true,
-				true);
+	public GetDataAndQueryJob(ImageIdentifier queryImage,
+			String[] queryLocations, MultiArchiveIndex searchScope,
+			int results, int batchSize, ActivityIdentifier... destinations) {
+		super(new CBIRActivityContext(ContextStrings.QUERY_INITIATOR, true),
+				true, true);
 		this.tables = new MatchTable[results * 2];
 		this.searchScope = searchScope;
 		this.queryImage = queryImage;
@@ -118,10 +118,10 @@ public class GetDataAndQueryJob extends Activity {
 		if (logger.isDebugEnabled()) {
 			logger.debug("Creating QueryBatches");
 		}
-		for (Entry<Set<String>, Set<ImageIdentifier>> databaseEntry : searchScope
+		for (Entry<HashSet<String>, Set<ImageIdentifier>> databaseEntry : searchScope
 				.getElementsByArchive().entrySet()) {
 			ActivityContext context = createContextForBatch(databaseEntry
-					.getKey());
+					.getKey(), true);
 			Set<ImageIdentifier> images = new HashSet<ImageIdentifier>();
 
 			for (ImageIdentifier image : databaseEntry.getValue()) {
@@ -207,26 +207,28 @@ public class GetDataAndQueryJob extends Activity {
 		return "QueryJob(" + identifier() + ", " + tables.length + ")";
 	}
 
-	private ActivityContext createStoreWorkerContext(String[] stores) {
+	private ActivityContext createStoreWorkerContext(String[] stores,
+			boolean interactive) {
 		if (stores.length == 1) {
-			return new UnitActivityContext(
-					ContextStrings.createForStoreWorker(stores[0]));
+			return new CBIRActivityContext(
+					ContextStrings.createForStoreWorker(stores[0]), interactive);
 		}
-		UnitActivityContext[] contexts = new UnitActivityContext[stores.length];
+		CBIRActivityContext[] contexts = new CBIRActivityContext[stores.length];
 		int i = 0;
 		for (String store : stores) {
-			contexts[i] = new UnitActivityContext(
-					ContextStrings.createForStoreWorker(store));
+			contexts[i] = new CBIRActivityContext(
+					ContextStrings.createForStoreWorker(store), interactive);
 			i++;
 		}
 
 		return new OrActivityContext(contexts, false);
 	}
 
-	private ActivityContext createContextForBatch(Set<String> stores) {
+	private ActivityContext createContextForBatch(Set<String> stores,
+			boolean interactive) {
 
-		return createStoreWorkerContext(stores
-				.toArray(new String[stores.size()]));
+		return createStoreWorkerContext(
+				stores.toArray(new String[stores.size()]), interactive);
 	}
 
 }

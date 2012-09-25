@@ -51,7 +51,7 @@ public class NFindrActivity extends KernelActivity {
 					dimensions.linesSamples(), generateRandomValues,
 					nFinderInitFile);
 
-			send(nFindrResult, targets);
+			send(new NFindrResult(nFindrResult), targets);
 			finish();
 		} else {
 			logger.debug("Unexpected Event");

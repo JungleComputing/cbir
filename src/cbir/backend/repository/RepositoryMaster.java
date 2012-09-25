@@ -1,6 +1,6 @@
 package cbir.backend.repository;
 
-import cbir.backend.SingleArchiveIndex;
+import cbir.backend.MultiArchiveIndex;
 
 
 /**
@@ -8,5 +8,5 @@ import cbir.backend.SingleArchiveIndex;
  *
  */
 public interface RepositoryMaster extends Repository {
-	SingleArchiveIndex getIndex();
+	MultiArchiveIndex getIndex();
 }

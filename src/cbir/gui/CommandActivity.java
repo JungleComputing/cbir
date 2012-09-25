@@ -1,13 +1,14 @@
 package cbir.gui;
 
+import ibis.constellation.Activity;
+import ibis.constellation.Event;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ibis.constellation.Activity;
-import ibis.constellation.Event;
-import ibis.constellation.context.UnitActivityContext;
 import cbir.frontend.QueryInitiator;
 import cbir.gui.commands.Command;
+import cbir.vars.CBIRActivityContext;
 import cbir.vars.ContextStrings;
 
 /**
@@ -27,7 +28,7 @@ public class CommandActivity extends Activity {
 	/**
 	 */
 	public CommandActivity() {
-		super(new UnitActivityContext(ContextStrings.QUERY_INITIATOR), false, true);
+		super(new CBIRActivityContext(ContextStrings.QUERY_INITIATOR, true), false, true);
 	}
 	
 	@Override

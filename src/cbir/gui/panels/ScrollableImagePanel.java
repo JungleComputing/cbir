@@ -40,7 +40,7 @@ public class ScrollableImagePanel extends JScrollPane {
 	
 	public ScrollableImagePanel() {
 		super();
-		imagePanel = new ImagePanel();
+		imagePanel = new ImagePanel("No Image");
 		setViewportView(imagePanel);
 //		setPreferredSize(new Dimension(400, 400));
 //		setMinimumSize(new Dimension(400, 400));

@@ -8,7 +8,7 @@
 JNIEXPORT jfloatArray JNICALL Java_cbir_kernels_c_SPCA_spca(JNIEnv *env,
 		jclass jcl, jfloatArray inputImage, jint numLines, jint numSamples,
 		jint numBands, jint linesSamples, jint numPrincipalComponents,
-		jboolean generate, jstring randomVectorFile, jint numIterations) {
+		jboolean generate, jstring randomVectorFile, jboolean fixedIterations, jint numIterations) {
 
 	const char* random_vector_file = NULL;
 	if (randomVectorFile != NULL) {
@@ -21,12 +21,6 @@ JNIEXPORT jfloatArray JNICALL Java_cbir_kernels_c_SPCA_spca(JNIEnv *env,
 	// access arrays
 	jfloat *inputArray = (*env)->GetFloatArrayElements(env, inputImage, 0);
 	jfloat *resultArray = (*env)->GetFloatArrayElements(env, result, 0);
-
-	int fixedIterations = 1;
-	if (numIterations <= 0) {
-		fixedIterations = 0;
-		numIterations = MAXINT;
-	}
 
 	int res;
 

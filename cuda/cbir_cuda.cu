@@ -65,8 +65,8 @@ static void LeerAleatorios(const char* random_filename, float *aleatorios,
 //}
 
 static void generarAleatorios(float *aleatorios, int n) {
-//	srand( time(NULL));
-	srand(10);
+	srand( time(NULL));
+//	srand(10);
 	int i;
 	//Generamos a con numeros aleatorios entre 0 y 1
 
@@ -84,8 +84,8 @@ static void generarAleatorios(float *aleatorios, int n) {
 //Output:	int *aleatorios:: vector of random numbers.
 static void generarAleatoriosNfindr(int *aleatorios, int n,
 		long int lines_samples) {
-//	srand( time(NULL));
-	srand(10);
+	srand( time(NULL));
+//	srand(10);
 	for (int i = 0; i < n; i++) {
 		aleatorios[i] = rand() % lines_samples;
 		//printf("Aleatorio %d = %d\n", i+1, aleatorios[i]); 
@@ -543,9 +543,8 @@ int spca(const float* h_image, int num_lines, int num_samples, int num_bands,
 		int iter;
 		if(fixed_n_iterations==1){
 			//printf("Numero de iteraciones fijadas a %d\n", n_iterations);
-		} else {
-			n_iterations = MAXINT;
 		}
+
 		for(iter=0; iter<n_iterations; iter++){
 
 			/*Compute deflation matrix*/

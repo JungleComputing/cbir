@@ -44,7 +44,7 @@ public class StoreIndexListModel extends AbstractListModel<ImageIdentifier> {
 		TreeSet<ImageIdentifier> sortedIdentifiers = new TreeSet<>(images);
 		// do not add the elements we already got
 		sortedIdentifiers.removeAll(contents);
-		if(images.isEmpty()) {
+		if(sortedIdentifiers.isEmpty()) {
 			return;
 		}
 				
@@ -59,7 +59,7 @@ public class StoreIndexListModel extends AbstractListModel<ImageIdentifier> {
 			contents.add(index, image);
 			fireIntervalAdded(this, index, index);
 			
-			// sortedIdentifiers are sorted, so the next one we be larger than this one
+			// sortedIdentifiers are sorted, so the next one will be larger than this one
 			index++;
 		}
 		

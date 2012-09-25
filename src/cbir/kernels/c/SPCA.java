@@ -10,12 +10,12 @@ public class SPCA extends CKernel implements cbir.kernels.SPCA {
 	private static native float[] spca(float[] inputImage, int numLines,
 			int numSamples, int numBands, int linesSamples,
 			int numPrincipalComponents, boolean generate, String randomVectorFile,
-			int numIterations);
+			boolean fixedNumIterations, int numIterations);
 	
 	@Override
 	public float[] exec(float[] inputImage, int numLines, int numSamples,
 			int numBands, int linesSamples, int numPrincipalComponents,
-			boolean generate, String randomVectorFile, int numIterations) {
+			boolean generate, String randomVectorFile, boolean fixedNumIterations, int numIterations) {
 //		if(logger.isDebugEnabled()) {
 //			logger.debug(String.format("SPCA.exec(): %d lines, %d samples, %d bands, %d linessamples, %d pc's", numLines, numSamples, numBands, linesSamples, numPrincipalComponents));
 //		}
@@ -23,7 +23,7 @@ public class SPCA extends CKernel implements cbir.kernels.SPCA {
 		long start = System.nanoTime();
 		float[] result = spca(inputImage, numLines, numSamples, numBands,
 				linesSamples, numPrincipalComponents, generate,
-				randomVectorFile, numIterations);
+				randomVectorFile, fixedNumIterations, numIterations);
 		if(logger.isDebugEnabled()) {
 			logger.debug(String.format("SPCA_C\t%f",
 				elapsedTime(start, System.nanoTime())));

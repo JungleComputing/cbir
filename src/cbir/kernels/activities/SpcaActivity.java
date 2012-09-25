@@ -25,12 +25,12 @@ public class SpcaActivity extends KernelActivity {
 
 	private FloatImage inputImage;
 	private final int numPrincipalComponents;
-	private final boolean generate;
+	private final boolean generate, fixedNumIterations;
 	private final String randomVectorFile;
 	private final int numIterations;
 
 	public SpcaActivity(FloatImage image, int numPrincipalComponents, boolean generate,
-			String randomVectorFile, int numIterations, boolean restrictToLocal,
+			String randomVectorFile, boolean fixedNumIterations, int numIterations, boolean restrictToLocal,
 			ActivityIdentifier... targets) {
 		super(Contexts.spca, restrictToLocal, false);
 		inputImage = image;
@@ -39,6 +39,7 @@ public class SpcaActivity extends KernelActivity {
 		this.randomVectorFile = randomVectorFile;
 		this.numIterations = numIterations;
 		this.targets = targets;
+		this.fixedNumIterations = fixedNumIterations;
 	}
 
 	@Override
@@ -48,7 +49,7 @@ public class SpcaActivity extends KernelActivity {
 				dimensions.numLines, dimensions.numSamples,
 				dimensions.numBands, dimensions.linesSamples(),
 				numPrincipalComponents, generate, randomVectorFile,
-				numIterations);
+				fixedNumIterations, numIterations);
 		send(new FloatImage(new EnviHeader(inputImage.getID().getName()
 				+ PRINCIPAL_COMPONENTS_POSTFIX, dimensions.numLines,
 				dimensions.numSamples, numPrincipalComponents), pcaResult),

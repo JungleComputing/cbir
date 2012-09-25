@@ -29,10 +29,10 @@ extern "C" {
 /*
  * Class:     cbir_kernels_c_SPCA
  * Method:    spca
- * Signature: ([FIIIIIZLjava/lang/String;I)[F
+ * Signature: ([FIIIIIZLjava/lang/String;ZI)[F
  */
 JNIEXPORT jfloatArray JNICALL Java_cbir_kernels_c_SPCA_spca
-  (JNIEnv *, jclass, jfloatArray, jint, jint, jint, jint, jint, jboolean, jstring, jint);
+  (JNIEnv *, jclass, jfloatArray, jint, jint, jint, jint, jint, jboolean, jstring, jboolean, jint);
 
 #ifdef __cplusplus
 }

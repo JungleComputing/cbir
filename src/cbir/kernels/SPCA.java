@@ -5,5 +5,5 @@ public interface SPCA {
 	
 	public float[] exec(float[] inputImage, int numLines, int numSamples,
 			int numBands, int linesSamples, int numPrincipalComponents,
-			boolean generate, String randomVectorFile, int numIterations);
+			boolean generate, String randomVectorFile, boolean fixedNumIterations, int numIterations);
 }

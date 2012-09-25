@@ -1,12 +1,13 @@
 package cbir.frontend.cache;
 
+import ibis.constellation.Activity;
+import ibis.constellation.Event;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import ibis.constellation.Activity;
-import ibis.constellation.Event;
-import ibis.constellation.context.UnitActivityContext;
 import cbir.backend.store.MetadataMessage;
+import cbir.vars.CBIRActivityContext;
 import cbir.vars.ContextStrings;
 
 /**
@@ -30,7 +31,7 @@ public class CacheActivity extends Activity {
 	 * @param willReceiveEvents
 	 */
 	public CacheActivity(MetadataCacheImpl cache) {
-		super(new UnitActivityContext(ContextStrings.createForStoreWorker(cache.storeName())), true, true);
+		super(new CBIRActivityContext(ContextStrings.createForCache(cache.storeName()), true), true, true);
 		this.cache = cache;
 	}
 
