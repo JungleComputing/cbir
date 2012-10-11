@@ -35,18 +35,39 @@ public class ExecutorFactory {
     }
 
     public QueryInitiator createQueryInitiator(URI baseURI, String[] stores,
-            boolean useGpu, boolean receiveCommands) {
+            boolean receiveCommands) {
         UnitWorkerContext[] unit;
-        if (useGpu) {
-            unit = new UnitWorkerContext[] {
-                    new UnitWorkerContext(ContextStrings.QUERY_INITIATOR),
-                    new UnitWorkerContext(ContextStrings.GPU_KERNEL),
-                    new UnitWorkerContext(ContextStrings.CPU_KERNEL) };
-        } else {
-            unit = new UnitWorkerContext[] {
-                    new UnitWorkerContext(ContextStrings.QUERY_INITIATOR),
-                    new UnitWorkerContext(ContextStrings.CPU_KERNEL) };
+        unit = new UnitWorkerContext[] {
+                new UnitWorkerContext(ContextStrings.QUERY_INITIATOR),
+                new UnitWorkerContext(ContextStrings.CPU_KERNEL) };
+
+        RepositoryOperations ops = new GATRepositoryOperations(
+                new RepositoryDescriptor(initiatorName, baseURI));
+
+        StealPool[] pools = new StealPool[stores.length + 1];
+        for (int i = 0; i < stores.length; i++) {
+            pools[i] = StealPools.MetadataStoreClients(stores[i]);
         }
+        pools[stores.length] = StealPools.QueryPool;
+
+        if (receiveCommands) {
+            return new QueryInitiator(stores,
+                    new RepositoryOperations[] { ops }, new StealPool(pools),
+                    StealPools.CommandPool, new OrWorkerContext(unit, true));
+        } else {
+            return new QueryInitiator(stores,
+                    new RepositoryOperations[] { ops }, new StealPool(pools),
+                    StealPools.None, new OrWorkerContext(unit, true));
+        }
+    }
+
+    public QueryInitiator createQueryInitiator(URI baseURI, String[] stores,
+            boolean receiveCommands, long cudaHandle) {
+        UnitWorkerContext[] unit;
+        unit = new UnitWorkerContext[] {
+                new UnitWorkerContext(ContextStrings.QUERY_INITIATOR),
+                new UnitWorkerContext(ContextStrings.GPU_KERNEL),
+                new UnitWorkerContext(ContextStrings.CPU_KERNEL) };
 
         RepositoryOperations ops = new GATRepositoryOperations(
                 new RepositoryDescriptor(initiatorName, baseURI));
@@ -61,34 +82,37 @@ public class ExecutorFactory {
             return new QueryInitiator(stores,
                     new RepositoryOperations[] { ops }, new StealPool(pools),
                     StealPools.CommandPool, new OrWorkerContext(unit, true),
-                    useGpu);
+                    cudaHandle);
         } else {
             return new QueryInitiator(stores,
                     new RepositoryOperations[] { ops }, new StealPool(pools),
-                    StealPools.None, new OrWorkerContext(unit, true), useGpu);
+                    StealPools.None, new OrWorkerContext(unit, true),
+                    cudaHandle);
         }
     }
 
-    public QueryExecutor createQueryExecutor(MetadataCache cache, boolean useGpu) {
-
+    public QueryExecutor createQueryExecutor(MetadataCache cache) {
         UnitWorkerContext[] unit;
-        if (useGpu) {
-            unit = new UnitWorkerContext[] {
-                    new UnitWorkerContext(
-                            ContextStrings.createForStoreWorker(cache
-                                    .storeName())),
-                    new UnitWorkerContext(ContextStrings.GPU_KERNEL),
-                    new UnitWorkerContext(ContextStrings.CPU_KERNEL) };
-        } else {
-            unit = new UnitWorkerContext[] {
-                    new UnitWorkerContext(
-                            ContextStrings.createForStoreWorker(cache
-                                    .storeName())),
-                    new UnitWorkerContext(ContextStrings.CPU_KERNEL) };
-        }
+        unit = new UnitWorkerContext[] {
+                new UnitWorkerContext(ContextStrings.createForStoreWorker(cache
+                        .storeName())),
+                new UnitWorkerContext(ContextStrings.CPU_KERNEL) };
 
         return new QueryExecutor(cache, StealPools.None, StealPools.QueryPool,
-                new OrWorkerContext(unit, true), useGpu);
+                new OrWorkerContext(unit, true));
+    }
+
+    public QueryExecutor createQueryExecutor(MetadataCache cache,
+            long cudaHandle) {
+        UnitWorkerContext[] unit;
+        unit = new UnitWorkerContext[] {
+                new UnitWorkerContext(ContextStrings.createForStoreWorker(cache
+                        .storeName())),
+                new UnitWorkerContext(ContextStrings.GPU_KERNEL),
+                new UnitWorkerContext(ContextStrings.CPU_KERNEL) };
+
+        return new QueryExecutor(cache, StealPools.None, StealPools.QueryPool,
+                new OrWorkerContext(unit, true), cudaHandle);
     }
 
     public MetadataCache createMetadataCache(String storeName) {
@@ -123,23 +147,46 @@ public class ExecutorFactory {
     }
 
     public RepositoryExecutor createGATRepositoryExecutor(
-            RepositoryDescriptor[] repositories, boolean useGpu) {
+            RepositoryDescriptor[] repositories) {
 
         RepositoryOperations[] ops = new RepositoryOperations[repositories.length];
         for (int i = 0; i < repositories.length; i++) {
             ops[i] = new GATRepositoryOperations(repositories[i]);
         }
 
-        // StealPool repositoryPool = StealPools.RepositoryPool(repositoryName);
-        // StealPool repositoryClientPool = StealPools
-        // .RepositoryClientPool(repositoryName);
+        StealPool repositoryPool = StealPool.NONE;
+        StealPool repositoryClientPool = StealPools
+                .RepositoryMasterPool(repositories);
+
+        UnitWorkerContext[] unit;
+            unit = new UnitWorkerContext[repositories.length + 1];
+            for (int i = 0; i < repositories.length; i++) {
+                unit[i] = new UnitWorkerContext(
+                        ContextStrings.createForRepository(repositories[i]
+                                .getName()));
+            }
+            unit[repositories.length] = new UnitWorkerContext(
+                    ContextStrings.CPU_KERNEL);
+        WorkerContext context = new OrWorkerContext(unit, true);
+
+        return new RepositoryExecutor(ops, repositoryPool,
+                repositoryClientPool, context);
+    }
+    
+    public RepositoryExecutor createGATRepositoryExecutor(
+            RepositoryDescriptor[] repositories, long cudaHandle) {
+
+        RepositoryOperations[] ops = new RepositoryOperations[repositories.length];
+        for (int i = 0; i < repositories.length; i++) {
+            ops[i] = new GATRepositoryOperations(repositories[i]);
+        }
+
 
         StealPool repositoryPool = StealPool.NONE;
         StealPool repositoryClientPool = StealPools
                 .RepositoryMasterPool(repositories);
 
         UnitWorkerContext[] unit;
-        if (useGpu) {
             unit = new UnitWorkerContext[repositories.length + 2];
             for (int i = 0; i < repositories.length; i++) {
                 unit[i] = new UnitWorkerContext(
@@ -150,23 +197,10 @@ public class ExecutorFactory {
                     ContextStrings.GPU_KERNEL);
             unit[repositories.length + 1] = new UnitWorkerContext(
                     ContextStrings.CPU_KERNEL);
-        } else {
-            unit = new UnitWorkerContext[repositories.length + 1];
-            for (int i = 0; i < repositories.length; i++) {
-                unit[i] = new UnitWorkerContext(
-                        ContextStrings.createForRepository(repositories[i]
-                                .getName()));
-            }
-            unit[repositories.length] = new UnitWorkerContext(
-                    ContextStrings.CPU_KERNEL);
-        }
         WorkerContext context = new OrWorkerContext(unit, true);
 
-        // return new RepositoryExecutor(repositoryName, ops, repositoryPool,
-        // new StealPool(repositoryPool, repositoryClientPool), context,
-        // useGpu);
         return new RepositoryExecutor(ops, repositoryPool,
-                repositoryClientPool, context, useGpu);
+                repositoryClientPool, context, cudaHandle);
     }
 
     public RepositoryMasterExecutor createGATRepositoryMasterExecutor(

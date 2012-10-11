@@ -43,7 +43,7 @@ public class ResultElement extends JPanel {
 		innerPanel.setOpaque(false);
 		add(innerPanel);
 		innerPanel.setLayout(new BoxLayout(innerPanel, BoxLayout.Y_AXIS));
-		samplePanel = new ImagePanel(table.referenceImageID().getPrettyName());
+		samplePanel = new ImagePanel(table.referenceImageID().tryGetPrettyName());
 		innerPanel.add(samplePanel);
 //		JLabel label = new JLabel(getImageID().getName());
 //		label.setAlignmentX(Component.CENTER_ALIGNMENT);

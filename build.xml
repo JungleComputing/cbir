@@ -24,8 +24,8 @@
 			<include name="*.jar" />
 		</fileset>
 		<fileset dir="lib/GAT">
-            <include name="*.jar" />
-        </fileset>
+			<include name="*.jar" />
+		</fileset>
 	</path>
 
 	<path id="default.classpath">
@@ -49,7 +49,7 @@
 		<mkdir dir="tmp" />
 
 		<!-- Compile the java code from src into tmp -->
-		<javac srcdir="src/" destdir="tmp" debug="on" source="1.7" target="1.7" classpathref="external.jars">
+		<javac srcdir="src/" destdir="tmp" debug="on" includeantruntime="false" source="1.7" target="1.7" classpathref="external.jars">
 			<compilerarg value="-Xlint:unchecked" />
 		</javac>
 
@@ -104,7 +104,7 @@
 			<arg value="tmp" />
 			<arg value="-o" />
 			<arg value="cuda/jni_cbir_cuda.h" />
-			<arg value="cbir.kernels.cuda.CudaKernel" />
+			<arg value="cbir.kernels.cuda.Cuda" />
 			<arg value="cbir.kernels.cuda.SPCA" />
 			<arg value="cbir.kernels.cuda.NFindr" />
 			<arg value="cbir.kernels.cuda.LSU" />

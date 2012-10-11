@@ -103,7 +103,7 @@ public class GenerateFeatureVectors extends RepositoryActivity {
                     // extraction failed, retry
                     if (logger.isDebugEnabled()) {
                         logger.debug("Endmember extraction failed for "
-                                + header.getID().getPrettyName()
+                                + header.getID().tryGetPrettyName()
                                 + ", retrying...");
                     }
                     startExtraction();
@@ -111,7 +111,7 @@ public class GenerateFeatureVectors extends RepositoryActivity {
                 } else {
                     if (logger.isDebugEnabled()) {
                         logger.debug("Endmember extraction failed for "
-                                + header.getID().getPrettyName()
+                                + header.getID().tryGetPrettyName()
                                 + ", giving up");
                     }
                     send(new Metadata(image.getHeader(), null), targets);

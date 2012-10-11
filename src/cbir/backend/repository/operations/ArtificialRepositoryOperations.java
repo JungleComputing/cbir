@@ -36,7 +36,7 @@ public class ArtificialRepositoryOperations extends RepositoryOperations {
 	}
 
 	@Override
-	public EnviHeader readHeader(String uuid) {
+	protected EnviHeader doReadHeader(String uuid) {
 		return new EnviHeader(uuid, samples, lines, bands);
 	}
 
@@ -78,7 +78,7 @@ public class ArtificialRepositoryOperations extends RepositoryOperations {
 	}
 
 	@Override
-	public FloatImage loadData(EnviHeader header) {
+	protected FloatImage doLoadData(EnviHeader header) {
 		String uuid = header.getID().getName();
 		Random random = new Random(uuid.hashCode());
 
@@ -111,12 +111,12 @@ public class ArtificialRepositoryOperations extends RepositoryOperations {
 	}
 
 	@Override
-	public ImageIdentifier[] contents() throws IOException {
+	protected ImageIdentifier[] doContents() throws IOException {
 		return contents.clone();
 	}
 
 	@Override
-	public BufferedImage createBufferedImage(EnviHeader header, String uuid,
+	protected BufferedImage doCreateBufferedImage(EnviHeader header, String uuid,
 			int red, int green, int blue) throws UnsupportedOperationException {
 		throw new UnsupportedOperationException();
 	}

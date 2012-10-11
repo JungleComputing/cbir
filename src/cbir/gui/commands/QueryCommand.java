@@ -39,9 +39,9 @@ public class QueryCommand extends Command {
 	@Override
 	public void execute(QueryInitiator qi, ActivityIdentifier destination) {
 		if (query == null) {
-			qi.query(imageID, scope, destination);
+			qi.query(imageID, scope, getTimeStamp(), destination);
 		} else {
-			qi.query(query, scope, destination);
+			qi.query(query, scope, getTimeStamp(), destination);
 		}
 	}
 

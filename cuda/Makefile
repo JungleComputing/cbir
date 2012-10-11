@@ -19,7 +19,7 @@ CU_OBJECTS	= $(CU_SOURCES:%.cu=%.o)
 CU_PTX		= $(CU_SOURCES:%.cu=%.ptx)
 CC_OBJECTS	= $(CC_SOURCES:%.c=%.o)
 
-all: test
+all: cbir_cuda $(CC_OBJECTS)
 
 %.o:		%.cu
 		$(NVCC) $(CU_FLAGS) -c $< -o $@
@@ -35,7 +35,7 @@ cbir_cuda: $(CU_OBJECTS) jni_cbir_cuda.o
 
 ptx:		$(CU_PTX) 
 
-test: cbir_cuda $(CC_OBJECTS)
+test: all
 		$(CC) test.o -L. -lcbir_cuda -o $@
 		
 clean:

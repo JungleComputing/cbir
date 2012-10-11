@@ -35,6 +35,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import cbir.Config;
 import cbir.MatchTable;
 import cbir.backend.MultiArchiveIndex;
+import cbir.backend.SingleArchiveIndex;
 import cbir.envi.EnviHeader;
 import cbir.envi.FloatImage;
 import cbir.envi.ImageIdentifier;
@@ -75,47 +76,48 @@ public class Gui implements ActionListener {
     private static final String BANDS_INDEX = "BANDS_INDEX";
 
     // create a Thread that polls for the database
-    private class IndexUpdater extends Thread {
-        private static final int MIN_SLEEP_TIME = 100;
-        private static final long POLL_RATE = 5000;
-        private final Gui gui;
-        private volatile boolean updateDelivered;
-
-        public IndexUpdater(Gui gui) {
-            this.gui = gui;
-            updateDelivered = true; // initially all request are fulfilled
-        }
-
-        public void run() {
-            long nextUpdate = System.currentTimeMillis() + POLL_RATE;
-            while (true) {
-                while (!updateDelivered
-                        || System.currentTimeMillis() < nextUpdate) {
-                    try {
-                        Thread.sleep(Math.max(
-                                nextUpdate - System.currentTimeMillis(),
-                                MIN_SLEEP_TIME));
-                    } catch (InterruptedException e) {
-                        // ignore
-                    }
-                }
-                gui.updateIndex();
-                nextUpdate = System.currentTimeMillis() + POLL_RATE;
-                updateDelivered = false;
-
-            }
-        }
-
-        private void updated() {
-            updateDelivered = true;
-        }
-    }
+//    private class IndexUpdater extends Thread {
+//        private static final int MIN_SLEEP_TIME = 100;
+//        private static final long POLL_RATE = 5000;
+//        private final Gui gui;
+//        private volatile boolean updateDelivered;
+//
+//        public IndexUpdater(Gui gui) {
+//            this.gui = gui;
+//            updateDelivered = true; // initially all request are fulfilled
+//        }
+//
+//        public void run() {
+//            long nextUpdate = System.currentTimeMillis() + POLL_RATE;
+//            while (true) {
+//                while (!updateDelivered
+//                        || System.currentTimeMillis() < nextUpdate) {
+//                    try {
+//                        Thread.sleep(Math.max(
+//                                nextUpdate - System.currentTimeMillis(),
+//                                MIN_SLEEP_TIME));
+//                    } catch (InterruptedException e) {
+//                        // ignore
+//                    }
+//                }
+//                
+//                gui.updateIndex();
+//                nextUpdate = System.currentTimeMillis() + POLL_RATE;
+//                updateDelivered = false;
+//
+//            }
+//        }
+//
+//        private void updated() {
+//            updateDelivered = true;
+//        }
+//    }
 
     private JFileChooser fc;
 
     private QueryInput queryInput;
 
-    private IndexUpdater indexUpdater;
+//    private IndexUpdater indexUpdater;
     private JFrame frame;
 
     // private ImagePanel imagePanel;
@@ -150,7 +152,7 @@ public class Gui implements ActionListener {
         storeIndexModel = new StoreIndexListModel();
         storeChart = new StoreContentsChart();
         bandUnits = BANDS_INDEX;
-        indexUpdater = new IndexUpdater(this);
+//        indexUpdater = new IndexUpdater(this);
     }
 
     public void setController(Controller controller) {
@@ -645,8 +647,9 @@ public class Gui implements ActionListener {
         updatePreviews();
         updateQueryPreview();
 
-        indexUpdater.setDaemon(true);
-        indexUpdater.start();
+        controller.requestIndexUpdates();
+//        indexUpdater.setDaemon(true);
+//        indexUpdater.start();
     }
 
     @Override
@@ -667,8 +670,8 @@ public class Gui implements ActionListener {
             updateQueryPreview();
         } else if (command.equals(SEARCH)) {
             startSearch(queryInput);
-        } else if (command.equals(UPDATE_INDEX)) {
-            updateIndex();
+//        } else if (command.equals(UPDATE_INDEX)) {
+//            updateIndex();
         } else if (command.equals(SELECT_FROM_STORE)) {
             ImageIdentifier image = imageList.getSelectedValue();
             if (image != null) {
@@ -691,14 +694,14 @@ public class Gui implements ActionListener {
             return;
         }
         log.addLine("Search started for "
-                + query.getHeader().getID().getPrettyName());
+                + query.getHeader().getID().tryGetPrettyName());
         controller.doQuery(query);
     }
 
-    private void updateIndex() {
-        log.addLine("Updating index");
-        controller.requestIndex();
-    }
+//    private void updateIndex() {
+//        log.addLine("Updating index");
+//        controller.requestIndex();
+//    }
 
     private void updatePreviews() {
         // results.add(new
@@ -769,9 +772,12 @@ public class Gui implements ActionListener {
         // ((BandComboBoxModel<String>)greenComboBox.getModel()).setElements(bands);
         // ((BandComboBoxModel<String>)blueComboBox.getModel()).setElements(bands);
 
-        redComboBox.setModel(new BandComboBoxModel<String>(bands, redComboBox.getSelectedIndex()));
-        greenComboBox.setModel(new BandComboBoxModel<String>(bands, greenComboBox.getSelectedIndex()));
-        blueComboBox.setModel(new BandComboBoxModel<String>(bands, blueComboBox.getSelectedIndex()));
+        redComboBox.setModel(new BandComboBoxModel<String>(bands, redComboBox
+                .getSelectedIndex()));
+        greenComboBox.setModel(new BandComboBoxModel<String>(bands,
+                greenComboBox.getSelectedIndex()));
+        blueComboBox.setModel(new BandComboBoxModel<String>(bands, blueComboBox
+                .getSelectedIndex()));
     }
 
     // function below should be called from the EventQueue Thread
@@ -810,8 +816,18 @@ public class Gui implements ActionListener {
         fetchResultPreviews();
     }
 
+    protected void deliverResult(MatchTable[] matchData, long queryTime) {
+        log.addLine("Results received");
+        log.addLine(String.format("Query took %d ms", queryTime / 1000000));
+        // update results pane
+        results.updateResults(matchData, this);
+        // resultPreview.revalidate();
+
+        fetchResultPreviews();
+    }
+
     protected void deliverImage(FloatImage image) {
-        log.addLine("Image received: " + image.getID().getPrettyName());
+        log.addLine("Image received: " + image.getID().tryGetPrettyName());
         queryInput.setFromImage(image);
         updateBandBoxes();
         updateQueryPreview();
@@ -819,7 +835,7 @@ public class Gui implements ActionListener {
     }
 
     protected void deliverHeader(EnviHeader header) {
-        log.addLine("Header received: " + header.getID().getPrettyName());
+        log.addLine("Header received: " + header.getID().tryGetPrettyName());
         queryInput.setFromHeader(header);
         updateBandBoxes();
         updateQueryPreview();
@@ -827,10 +843,11 @@ public class Gui implements ActionListener {
     }
 
     protected void deliverPreview(PreviewImage preview) {
-        log.addLine("Preview received: " + preview.getImageID().getPrettyName());
-        if(preview.getImageID().equals(queryInput.getID())) {
-           log.addLine("Is a QueryPreview");
-           previewPanel.setImage(preview.getImage());
+        log.addLine("Preview received: "
+                + preview.getImageID().tryGetPrettyName());
+        if (preview.getImageID().equals(queryInput.getID())) {
+            log.addLine("Is a QueryPreview");
+            previewPanel.setImage(preview.getImage());
         }
         results.deliverPreview(preview);
 
@@ -838,12 +855,22 @@ public class Gui implements ActionListener {
         // resultPreview.repaint();
     }
 
-    protected void deliverIndex(MultiArchiveIndex index) {
-        log.addLine(String.format("Store contains %d images", index.size()));
-        this.index = index;
-        storeIndexModel.updateIndex(index);
-        storeChart.updateGraph(index);
-        indexUpdater.updated();
+    // protected void deliverIndex(MultiArchiveIndex index) {
+    // log.addLine(String.format("Store contains %d images", index.size()));
+    // this.index = index;
+    // storeIndexModel.updateIndex(index);
+    // storeChart.updateGraph(index);
+    // indexUpdater.updated();
+    // }
+
+    protected void deliverIndex(SingleArchiveIndex sai) {
+        if (sai.size() > 0) {
+            index.add(sai);
+            storeIndexModel.updateIndex(sai);
+            storeChart.updateGraph(index);
+            log.addLine(String.format("Store contains %d images", index.size()));
+//            indexUpdater.updated();
+        }
     }
 
     public void setQueryFromResults(ResultElement re) {
@@ -852,7 +879,7 @@ public class Gui implements ActionListener {
 
     private void setQueryFromStore(ImageIdentifier imageID) {
         String[] stores = index.getStoresFor(imageID);
-        System.out.print("Getting queryHeader " + imageID.getPrettyName()
+        System.out.print("Getting queryHeader " + imageID.tryGetPrettyName()
                 + " from stores ");
         for (String store : stores) {
             System.out.print(store + " ");
@@ -861,7 +888,7 @@ public class Gui implements ActionListener {
         controller.requestHeader(imageID, stores);
         // controller.requestImage(imageID, stores);
         log.addLine("Getting QueryImage from stores: "
-                + imageID.getPrettyName());
+                + imageID.tryGetPrettyName());
     }
 
 }

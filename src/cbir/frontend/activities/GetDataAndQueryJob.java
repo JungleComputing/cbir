@@ -75,10 +75,12 @@ public class GetDataAndQueryJob extends Activity {
 	private final int results;
 	private int batches;
 	private ActivityIdentifier[] destinations;
+	private final long queryTimeStamp;
+	private long batchProcessTime;
 
 	public GetDataAndQueryJob(ImageIdentifier queryImage,
 			String[] queryLocations, MultiArchiveIndex searchScope,
-			int results, int batchSize, ActivityIdentifier... destinations) {
+			int results, int batchSize, long queryTimeStamp, ActivityIdentifier... destinations) {
 		super(new CBIRActivityContext(ContextStrings.QUERY_INITIATOR, true),
 				true, true);
 		this.tables = new MatchTable[results * 2];
@@ -89,6 +91,8 @@ public class GetDataAndQueryJob extends Activity {
 		this.batchSize = batchSize;
 		batches = 0;
 		this.destinations = destinations;
+		this.queryTimeStamp = queryTimeStamp;
+		batchProcessTime = 0;
 	}
 
 	@Override
@@ -149,15 +153,17 @@ public class GetDataAndQueryJob extends Activity {
 	@Override
 	public void process(Event e) throws Exception {
 		if (e.data instanceof MatchTable[]) {
-			// long time = -System.nanoTime();
+			batchProcessTime -= System.nanoTime();
 			if (logger.isDebugEnabled()) {
 				logger.debug("Received a resultBatch");
 			}
 			boolean done = processBatch((MatchTable[]) e.data);
+			batchProcessTime += System.nanoTime();
 			if (done) {
 				if (logger.isDebugEnabled()) {
 					logger.debug("Received all results --> DONE");
 				}
+				System.out.println(String.format("Batch processing took %d ns", batchProcessTime));
 				finish();
 			} else {
 				suspend();
@@ -193,7 +199,7 @@ public class GetDataAndQueryJob extends Activity {
 		MatchTable[] msg = Arrays.copyOf(tables, results);
 
 		for (ActivityIdentifier dest : destinations) {
-			getExecutor().send(new QueryResultEvent(identifier(), dest, msg));
+			getExecutor().send(new QueryResultEvent(identifier(), dest, queryTimeStamp, msg));
 		}
 	}
 

@@ -5,6 +5,7 @@ import java.net.URISyntaxException;
 
 import cbir.MatchTable;
 import cbir.backend.MultiArchiveIndex;
+import cbir.backend.SingleArchiveIndex;
 import cbir.envi.EnviHeader;
 import cbir.envi.FloatImage;
 import cbir.envi.ImageIdentifier;
@@ -12,7 +13,7 @@ import cbir.envi.PreviewImage;
 import cbir.gui.commands.Command;
 import cbir.gui.commands.GetHeaderCommand;
 import cbir.gui.commands.GetImageCommand;
-import cbir.gui.commands.GetIndexCommand;
+import cbir.gui.commands.GetIndexUpdatesCommand;
 import cbir.gui.commands.GetPreviewCommand;
 import cbir.gui.commands.QueryCommand;
 import cbir.node.ControlNode;
@@ -77,8 +78,12 @@ public class Controller {
         submit(new GetPreviewCommand(imageID, red, green, blue, stores));
     }
 
-    public void requestIndex() {
-        submit(new GetIndexCommand());
+//    public void requestIndex() {
+//        submit(new GetIndexCommand());
+//    }
+    
+    public void requestIndexUpdates() {
+        submit(new GetIndexUpdatesCommand());
     }
 
     public void doQuery(QueryInput qi) {
@@ -89,11 +94,12 @@ public class Controller {
         }
     }
 
-    public void deliverResult(final MatchTable[] tables) {
+    public void deliverResult(final MatchTable[] tables, long timestamp) {
+        final long queryTime = System.nanoTime() - timestamp;
         EventQueue.invokeLater(new Runnable() {
             public void run() {
                 try {
-                    view.deliverResult(tables);
+                    view.deliverResult(tables, queryTime);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -126,6 +132,18 @@ public class Controller {
     }
 
     public void deliverIndex(final MultiArchiveIndex index) {
+        EventQueue.invokeLater(new Runnable() {
+            public void run() {
+                try {
+//                    view.deliverIndex(index);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+    }
+    
+    public void deliverIndex(final SingleArchiveIndex index) {
         EventQueue.invokeLater(new Runnable() {
             public void run() {
                 try {

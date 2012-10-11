@@ -12,9 +12,6 @@
 #include <sys/time.h>
 #include <values.h>
 
-/* Includes, cuda */
-#include "cublas.h"
-
 #define THRESHOLD 0.00001
 
 #define MIN_DOUBLE ((double) (1 << (sizeof(double) * 8 - 1)))//Minimum double
@@ -65,10 +62,10 @@ static void LeerAleatorios(const char* random_filename, float *aleatorios,
 //}
 
 static void generarAleatorios(float *aleatorios, int n) {
-	srand( time(NULL));
+	srand (time(NULL));
 //	srand(10);
-	int i;
-	//Generamos a con numeros aleatorios entre 0 y 1
+int	i;
+//Generamos a con numeros aleatorios entre 0 y 1
 
 	for (i = 0; i < n; i++) {
 		//a[i]=drand48();
@@ -84,9 +81,9 @@ static void generarAleatorios(float *aleatorios, int n) {
 //Output:	int *aleatorios:: vector of random numbers.
 static void generarAleatoriosNfindr(int *aleatorios, int n,
 		long int lines_samples) {
-	srand( time(NULL));
+	srand (time(NULL));
 //	srand(10);
-	for (int i = 0; i < n; i++) {
+for	(int i = 0; i < n; i++) {
 		aleatorios[i] = rand() % lines_samples;
 		//printf("Aleatorio %d = %d\n", i+1, aleatorios[i]); 
 	}
@@ -165,11 +162,11 @@ static void CambiarFilas(double* A, double* L, double* E, int n, int p) {
 	double tmp;
 	for (int i = 0; i < p; i++) {
 		//Se cambia la fila I por la fila n
-		tmp = A[n * p + i];//elemento i de la fila n
+		tmp = A[n * p + i]; //elemento i de la fila n
 		A[n * p + i] = A[I * p + i];
 		A[I * p + i] = tmp;
 
-		tmp = L[n * p + i];//elemento i de la fila n
+		tmp = L[n * p + i]; //elemento i de la fila n
 		L[n * p + i] = L[I * p + i];
 		L[I * p + i] = tmp;
 
@@ -224,7 +221,7 @@ static int LU(double *A, double *L, double *U, double *Per, int p) {
 				maxPivot = elemento;
 			}
 		}
-		if (Absoluto(currentPivot) < EPS) {//zero, do row exchage always
+		if (Absoluto(currentPivot) < EPS) { //zero, do row exchage always
 			if (Absoluto(maxPivot) < EPS) { //not possible to exchange
 				printf("unable to complete LU decomposition, bad A\n");
 //				exit(-1);
@@ -257,7 +254,7 @@ static int LU(double *A, double *L, double *U, double *Per, int p) {
 				A[i * p + j] = A[i * p + j] - L[i * p + n] * A[n * p + j];
 			}
 		}
-	}//for n		
+	} //for n
 	for (int i = 0; i < p; i++) {
 		L[i * p + i]++;
 	}
@@ -303,522 +300,595 @@ static void InvTri(double* L, int p) {
 // Program main
 ////////////////////////////////////////////////////////////////////////////////
 
-int initCuda() {
-	cublasStatus status;
-	status = cublasInit();
-	if (status != CUBLAS_STATUS_SUCCESS) {
-		return EXIT_FAILURE;
-	} else {
-		//printf("CUBLAS initialized!\n");
-		return 0;
-	}
+int getDeviceCount() {
+	int deviceCount = -1;
+	cudaGetDeviceCount(&deviceCount);
+	return deviceCount;
 }
 
-int spca(const float* h_image, int num_lines, int num_samples, int num_bands,
-		int lines_samples, int n_pc, int generate,
-		const char* random_vector_file, int fixed_n_iterations,
+int initDevice(deviceIdentifier **deviceID, int device) {
+	cublasStatus_t status;
+	*deviceID = (deviceIdentifier *) malloc(sizeof(deviceIdentifier));
+	cudaSetDevice(device);
+
+	(*deviceID)->device = device;
+	status = cublasCreate(&((*deviceID)->handle));
+	if (status != CUBLAS_STATUS_SUCCESS) {
+		free(*deviceID);
+		return EXIT_FAILURE;
+	}
+	fprintf(stderr, "deviceIdentifier for device %d done!\n", (*deviceID)->device);
+	fflush(stderr);
+	return 0;
+}
+
+void destroyDevice(deviceIdentifier *deviceID) {
+	cublasDestroy((deviceID->handle));
+	free(deviceID);
+}
+
+int spca(deviceIdentifier *deviceID, const float* h_image, int num_lines,
+		int num_samples, int num_bands, int lines_samples, int n_pc,
+		int generate, const char* random_vector_file, int fixed_n_iterations,
 		int n_iterations, float* h_B) {
-		cublasStatus status;
+	cublasStatus_t status;
+	cudaError_t error;
 
-		int iterations;
-		float max;
-		int max_i;
-		float aux;
+	cudaSetDevice(deviceID->device);
+	int iterations;
+	float max;
+	int max_i;
+	float aux;
 
-		// Pointers to host memory
-		float *h_EIGEN;
-		float *h_EIGENold;
-		float *h_P;
-		float *h_Pcoeffs;
-		float *h_defl;
-		float *h_sumFi;
-		float *h_Fitmp;
-		float *h_Ytmp_aux;
-		float *h_P_aux;
+	// Pointers to host memory
+	float *h_EIGEN;
+	float *h_EIGENold;
+	float *h_P;
+	float *h_Pcoeffs;
+	float *h_defl;
+	float *h_sumFi;
+	float *h_Fitmp;
+	float *h_Ytmp_aux;
+	float *h_P_aux;
 
-		float *d_X;
-		float *d_P;
-		float *d_Y;
-		float *d_Y2;
-		float *d_Pcoeffs;
-		float *d_defl;
-		float *d_sumFi;
-		float *d_Ytmp;
-		float *d_Fitmp;
-		float *d_Ytmp_aux;
-		float *d_pixel;
-		float *d_P_aux;
-		float *d_B;
-		float *d_XX;
-		float *d_deltaP;
+	float *d_X;
+	float *d_P;
+	float *d_Y;
+	float *d_Y2;
+	float *d_Pcoeffs;
+	float *d_defl;
+	float *d_sumFi;
+	float *d_Ytmp;
+	float *d_Fitmp;
+	float *d_Ytmp_aux;
+	float *d_pixel;
+	float *d_P_aux;
+	float *d_B;
+	float *d_XX;
+	float *d_deltaP;
 
-		h_EIGEN = (float*) calloc(n_pc, sizeof(float));
-		h_EIGENold = (float*) calloc(n_pc, sizeof(float));
-		h_P = (float*) malloc(num_bands * n_pc * sizeof(float));
-		h_Pcoeffs = (float*) malloc(n_pc * n_pc * sizeof(float));
-		h_defl = (float*) malloc(n_pc * n_pc * sizeof(float));
-		h_sumFi = (float*) malloc(n_pc * num_bands * sizeof(float));
-		h_Fitmp = (float*) malloc(n_pc * num_bands * sizeof(float));
-		h_Ytmp_aux = (float*) malloc(n_pc * n_pc * sizeof(float));
-		h_P_aux = (float*) malloc(n_pc * n_pc * sizeof(float));
+	h_EIGEN = (float*) calloc(n_pc, sizeof(float));
+	h_EIGENold = (float*) calloc(n_pc, sizeof(float));
+	h_P = (float*) malloc(num_bands * n_pc * sizeof(float));
+	h_Pcoeffs = (float*) malloc(n_pc * n_pc * sizeof(float));
+	h_defl = (float*) malloc(n_pc * n_pc * sizeof(float));
+	h_sumFi = (float*) malloc(n_pc * num_bands * sizeof(float));
+	h_Fitmp = (float*) malloc(n_pc * num_bands * sizeof(float));
+	h_Ytmp_aux = (float*) malloc(n_pc * n_pc * sizeof(float));
+	h_P_aux = (float*) malloc(n_pc * n_pc * sizeof(float));
 
-		/* Allocate device memory for the matrices */
-		status = cublasAlloc(lines_samples * num_bands, sizeof(float), (void**)&d_X);
+	/* Allocate device memory for the matrices */
+	error = cudaMalloc((void**) &d_X,
+			lines_samples * num_bands * sizeof(float));
+	if (error != cudaSuccess) {
+		fprintf(stderr, "!!!! device memory allocation error (X)\n");
+		return EXIT_FAILURE;
+	}
+
+	error = cudaMalloc((void**) &d_P, num_bands * n_pc * sizeof(float));
+	if (error != cudaSuccess) {
+		fprintf(stderr, "!!!! device memory allocation error (P)\n");
+		return EXIT_FAILURE;
+	}
+
+	error = cudaMalloc((void**) &d_Y, lines_samples * n_pc * sizeof(float));
+	if (error != cudaSuccess) {
+		fprintf(stderr, "!!!! device memory allocation error (Y)\n");
+		return EXIT_FAILURE;
+	}
+
+	error = cudaMalloc((void**) &d_Y2, lines_samples * n_pc * sizeof(float));
+	if (error != cudaSuccess) {
+		fprintf(stderr, "!!!! device memory allocation error (Y2)\n");
+		return EXIT_FAILURE;
+	}
+
+	error = cudaMalloc((void**) &d_Pcoeffs, n_pc * n_pc * sizeof(float));
+	if (error != cudaSuccess) {
+		fprintf(stderr, "!!!! device memory allocation error (Pcoeffs)\n");
+		return EXIT_FAILURE;
+	}
+
+	error = cudaMalloc((void**) &d_defl, n_pc * n_pc * sizeof(float));
+	if (error != cudaSuccess) {
+		fprintf(stderr, "!!!! device memory allocation error (defl)\n");
+		return EXIT_FAILURE;
+	}
+
+	error = cudaMalloc((void**) &d_sumFi, n_pc * num_bands * sizeof(float));
+	if (error != cudaSuccess) {
+		fprintf(stderr, "!!!! device memory allocation error (sumFi)\n");
+		return EXIT_FAILURE;
+	}
+
+	error = cudaMalloc((void**) &d_Ytmp, n_pc * n_pc * sizeof(float));
+	if (error != cudaSuccess) {
+		fprintf(stderr, "!!!! device memory allocation error (Ytmp)\n");
+		return EXIT_FAILURE;
+	}
+
+	error = cudaMalloc((void**) &d_Fitmp, n_pc * num_bands * sizeof(float));
+	if (error != cudaSuccess) {
+		fprintf(stderr, "!!!! device memory allocation error (Fitmp)\n");
+		return EXIT_FAILURE;
+	}
+
+	error = cudaMalloc((void**) &d_Ytmp_aux, n_pc * n_pc * sizeof(float));
+	if (error != cudaSuccess) {
+		fprintf(stderr, "!!!! device memory allocation error (Ytmp_aux)\n");
+		return EXIT_FAILURE;
+	}
+
+	error = cudaMalloc((void**) &d_pixel, num_bands * sizeof(float));
+	if (error != cudaSuccess) {
+		fprintf(stderr, "!!!! device memory allocation error (pixel)\n");
+		return EXIT_FAILURE;
+	}
+
+	error = cudaMalloc((void**) &d_P_aux, n_pc * n_pc * sizeof(float));
+	if (error != cudaSuccess) {
+		fprintf(stderr, "!!!! device memory allocation error (P_aux)\n");
+		return EXIT_FAILURE;
+	}
+
+	error = cudaMalloc((void**) &d_B, lines_samples * n_pc * sizeof(float));
+	if (error != cudaSuccess) {
+		fprintf(stderr, "!!!! device memory allocation error (B)\n");
+		return EXIT_FAILURE;
+	}
+
+	error = cudaMalloc((void**) &d_XX, num_bands * num_bands * sizeof(float));
+	if (error != cudaSuccess) {
+		fprintf(stderr, "!!!! device memory allocation error (XX)\n");
+		return EXIT_FAILURE;
+	}
+
+	error = cudaMalloc((void**) &d_deltaP, num_bands * n_pc * sizeof(float));
+	if (error != cudaSuccess) {
+		fprintf(stderr, "!!!! device memory allocation error (deltaP)\n");
+		return EXIT_FAILURE;
+	}
+
+	if (generate == 0) {
+		//Random vector reading
+		LeerAleatorios(random_vector_file, h_P, num_bands * n_pc);
+	} else if (generate == 1) {
+		generarAleatorios(h_P, num_bands * n_pc);
+		//printf("Se generan los números aleatorios\n");
+	}
+
+	cudaThreadSynchronize();
+
+	status = cublasSetVector(num_lines * num_samples * num_bands, sizeof(float),
+			h_image, 1, d_X, 1);
+	if (status != CUBLAS_STATUS_SUCCESS) {
+		fprintf(stderr, "!!!! device access error (write X)\n");
+		return EXIT_FAILURE;
+	}
+
+	int num_blocks_NormalizeX = num_bands;
+	//printf("num_blocks_NormalizeX %d\n", num_blocks_NormalizeX);
+
+	int num_threads_NormalizeX = 512;
+	//printf("num_threads_NormalizeX %d\n", num_threads_NormalizeX);
+
+	iterations = (int) ceil(
+			((float) lines_samples / (float) num_threads_NormalizeX));
+	//printf("Iterations NormalizeX %d\n", iterations);
+
+	NormalizeX<<<num_blocks_NormalizeX, num_threads_NormalizeX>>>(d_X, d_pixel, num_bands, num_lines, num_samples, iterations);
+
+	cudaThreadSynchronize();
+
+	status = cublasSetVector(num_bands * n_pc, sizeof(float), h_P, 1, d_P, 1);
+	if (status != CUBLAS_STATUS_SUCCESS) {
+		fprintf(stderr, "!!!! device access error (write P)\n");
+		return EXIT_FAILURE;
+	}
+
+	/* P_aux= P' * P */
+	float alpha = 1;
+	float beta = 0;
+	status = cublasSgemm(deviceID->handle, CUBLAS_OP_T, CUBLAS_OP_N, n_pc, n_pc,
+			num_bands, &alpha, d_P, num_bands, d_P, num_bands, &beta, d_P_aux,
+			n_pc);
+	if (status != CUBLAS_STATUS_SUCCESS) {
+		fprintf(stderr, "!!!! kernel execution error (P_aux= P' * P).\n");
+		return EXIT_FAILURE;
+	}
+
+	/* diag(diag(P_aux))^-0.5 */
+	status = cublasGetVector(n_pc * n_pc, sizeof(float), d_P_aux, 1, h_P_aux,
+			1);
+	if (status != CUBLAS_STATUS_SUCCESS) {
+		fprintf(stderr, "!!!! device access error (read P_aux)\n");
+		return EXIT_FAILURE;
+	}
+
+	for (int i = 0; i < n_pc; i++) { //columna
+		for (int j = 0; j < n_pc; j++) { //fila
+			if (j != i) {
+				h_P_aux[(i * n_pc) + j] = 0;
+			} else {
+				h_P_aux[(i * n_pc) + j] = pow(h_P_aux[(i * n_pc) + j], -0.5);
+			}
+		}
+	}
+
+	status = cublasSetVector(n_pc * n_pc, sizeof(float), h_P_aux, 1, d_P_aux,
+			1);
+	if (status != CUBLAS_STATUS_SUCCESS) {
+		fprintf(stderr, "!!!! device access error (write P_aux)\n");
+		return EXIT_FAILURE;
+	}
+
+	/* P = P * (diag(diag(P'*P))^-0.5) */
+	alpha = 1;
+	beta = 0;
+	status = cublasSgemm(deviceID->handle, CUBLAS_OP_N, CUBLAS_OP_N, num_bands,
+			n_pc, n_pc, &alpha, d_P, num_bands, d_P_aux, n_pc, &beta, d_P,
+			num_bands);
+	if (status != CUBLAS_STATUS_SUCCESS) {
+		fprintf(stderr,
+				"!!!! kernel execution error (P = P * (diag(diag(P'*P))^-0.5)).\n");
+		return EXIT_FAILURE;
+	}
+
+	/* XX = X'*X */
+	alpha = 1;
+	beta = 0;
+	status = cublasSgemm(deviceID->handle, CUBLAS_OP_T, CUBLAS_OP_N, num_bands,
+			num_bands, lines_samples, &alpha, d_X, lines_samples, d_X,
+			lines_samples, &beta, d_XX, num_bands);
+	if (status != CUBLAS_STATUS_SUCCESS) {
+		fprintf(stderr, "!!!! kernel execution error (XX = X'*X.\n");
+		return EXIT_FAILURE;
+	}
+
+	cudaThreadSynchronize();
+
+	int iter;
+	if (fixed_n_iterations == 1) {
+		//printf("Numero de iteraciones fijadas a %d\n", n_iterations);
+	}
+
+	for (iter = 0; iter < n_iterations; iter++) {
+
+		/*Compute deflation matrix*/
+		/* Pcoeffs = P' * P */
+		alpha = 1;
+		beta = 0;
+		status = cublasSgemm(deviceID->handle, CUBLAS_OP_T, CUBLAS_OP_N, n_pc,
+				n_pc, num_bands, &alpha, d_P, num_bands, d_P, num_bands, &beta,
+				d_Pcoeffs, n_pc);
 		if (status != CUBLAS_STATUS_SUCCESS) {
-			fprintf (stderr, "!!!! device memory allocation error (X)\n");
+			fprintf(stderr,
+					"!!!! kernel execution error (Pcoeffs = P' * P ).\n");
 			return EXIT_FAILURE;
 		}
+		//
+		cudaThreadSynchronize();
 
-		status = cublasAlloc(num_bands * n_pc, sizeof(float), (void**)&d_P);
+		/* defl = -Pcoeffs*/
+		cudaMemcpy(h_Pcoeffs, d_Pcoeffs, n_pc * n_pc * sizeof(float),
+				cudaMemcpyDeviceToHost);
+
+		for (int i = 0; i < n_pc * n_pc; i++) {
+			h_defl[i] = -h_Pcoeffs[i];
+		}
+
+		/* defl = triu(defl,+1) + eye(size(defl)) */
+		for (int i = 0; i < n_pc; i++) { //col
+			for (int j = 0; j < n_pc; j++) { //fil
+				if (i == j) {
+					h_defl[(i * n_pc) + j] = 1;
+				} else {
+					if (j > i) {
+						h_defl[(i * n_pc) + j] = 0;
+					}
+				}
+			}
+		}
+
+		for (int i = 0; i < n_pc; i++) {
+			for (int j = i + 2; j < n_pc; j++) {
+				for (int k = i + 2; k <= j; k++) {
+					h_defl[i + (j * n_pc)] -= h_defl[i + ((k - 1) * n_pc)]
+							* h_Pcoeffs[(k - 1) + (j * n_pc)];
+				}
+			}
+		}
+		status = cublasSetVector(n_pc * n_pc, sizeof(float), h_defl, 1, d_defl,
+				1);
 		if (status != CUBLAS_STATUS_SUCCESS) {
-			fprintf (stderr, "!!!! device memory allocation error (P)\n");
+			fprintf(stderr, "!!!! device access error (write defl)\n");
 			return EXIT_FAILURE;
-		}
-
-		status = cublasAlloc(lines_samples * n_pc, sizeof(float), (void**)&d_Y);
-		if (status != CUBLAS_STATUS_SUCCESS) {
-			fprintf (stderr, "!!!! device memory allocation error (Y)\n");
-			return EXIT_FAILURE;
-		}
-
-		status = cublasAlloc(lines_samples * n_pc, sizeof(float), (void**)&d_Y2);
-		if (status != CUBLAS_STATUS_SUCCESS) {
-			fprintf (stderr, "!!!! device memory allocation error (Y2)\n");
-			return EXIT_FAILURE;
-		}
-
-		status = cublasAlloc(n_pc * n_pc, sizeof(float), (void**)&d_Pcoeffs);
-		if (status != CUBLAS_STATUS_SUCCESS) {
-			fprintf (stderr, "!!!! device memory allocation error (Pcoeffs)\n");
-			return EXIT_FAILURE;
-		}
-
-		status = cublasAlloc(n_pc * n_pc, sizeof(float), (void**)&d_defl);
-		if (status != CUBLAS_STATUS_SUCCESS) {
-			fprintf (stderr, "!!!! device memory allocation error (defl)\n");
-			return EXIT_FAILURE;
-		}
-
-		status = cublasAlloc(n_pc * num_bands, sizeof(float), (void**)&d_sumFi);
-		if (status != CUBLAS_STATUS_SUCCESS) {
-			fprintf (stderr, "!!!! device memory allocation error (sumFi)\n");
-			return EXIT_FAILURE;
-		}
-
-		status = cublasAlloc(n_pc * n_pc, sizeof(float), (void**)&d_Ytmp);
-		if (status != CUBLAS_STATUS_SUCCESS) {
-			fprintf (stderr, "!!!! device memory allocation error (Ytmp)\n");
-			return EXIT_FAILURE;
-		}
-
-		status = cublasAlloc(n_pc * num_bands, sizeof(float), (void**)&d_Fitmp);
-		if (status != CUBLAS_STATUS_SUCCESS) {
-			fprintf (stderr, "!!!! device memory allocation error (Fitmp)\n");
-			return EXIT_FAILURE;
-		}
-
-		status = cublasAlloc(n_pc * n_pc, sizeof(float), (void**)&d_Ytmp_aux);
-		if (status != CUBLAS_STATUS_SUCCESS) {
-			fprintf (stderr, "!!!! device memory allocation error (Ytmp_aux)\n");
-			return EXIT_FAILURE;
-		}
-
-		status = cublasAlloc(num_bands, sizeof(float), (void**)&d_pixel);
-		if (status != CUBLAS_STATUS_SUCCESS) {
-			fprintf (stderr, "!!!! device memory allocation error (pixel)\n");
-			return EXIT_FAILURE;
-		}
-
-		status = cublasAlloc(n_pc * n_pc, sizeof(float), (void**)&d_P_aux);
-		if (status != CUBLAS_STATUS_SUCCESS) {
-			fprintf (stderr, "!!!! device memory allocation error (P_aux)\n");
-			return EXIT_FAILURE;
-		}
-
-		status = cublasAlloc(lines_samples * n_pc, sizeof(float), (void**)&d_B);
-		if (status != CUBLAS_STATUS_SUCCESS) {
-			fprintf (stderr, "!!!! device memory allocation error (B)\n");
-			return EXIT_FAILURE;
-		}
-
-		status = cublasAlloc(num_bands * num_bands, sizeof(float), (void**)&d_XX);
-		if (status != CUBLAS_STATUS_SUCCESS) {
-			fprintf (stderr, "!!!! device memory allocation error (XX)\n");
-			return EXIT_FAILURE;
-		}
-
-		status = cublasAlloc(num_bands * n_pc, sizeof(float), (void**)&d_deltaP);
-		if (status != CUBLAS_STATUS_SUCCESS) {
-			fprintf (stderr, "!!!! device memory allocation error (deltaP)\n");
-			return EXIT_FAILURE;
-		}
-
-		if(generate==0){
-			//Random vector reading
-			LeerAleatorios(random_vector_file, h_P, num_bands * n_pc);
-		}
-		else if(generate==1) {
-				generarAleatorios(h_P, num_bands * n_pc);
-				//printf("Se generan los números aleatorios\n");
 		}
 
 		cudaThreadSynchronize();
 
-		status = cublasSetVector(num_lines * num_samples * num_bands, sizeof(float), h_image, 1, d_X, 1);
+		/* deltaP = P * defl */
+
+		alpha = 1;
+		beta = 0;
+		status = cublasSgemm(deviceID->handle, CUBLAS_OP_N, CUBLAS_OP_N,
+				num_bands, n_pc, n_pc, &alpha, d_P, num_bands, d_defl, n_pc,
+				&beta, d_deltaP, num_bands);
 		if (status != CUBLAS_STATUS_SUCCESS) {
-			fprintf (stderr, "!!!! device access error (write X)\n");
+			fprintf(stderr,
+					"!!!! kernel execution error (deltaP = P * defl ).\n");
 			return EXIT_FAILURE;
 		}
-
-		int num_blocks_NormalizeX=num_bands;
-		//printf("num_blocks_NormalizeX %d\n", num_blocks_NormalizeX);
-
-		int num_threads_NormalizeX=512;
-		//printf("num_threads_NormalizeX %d\n", num_threads_NormalizeX);
-
-		iterations=(int)ceil(((float)lines_samples/(float)num_threads_NormalizeX));
-		//printf("Iterations NormalizeX %d\n", iterations);
-
-		NormalizeX<<<num_blocks_NormalizeX, num_threads_NormalizeX>>>(d_X, d_pixel, num_bands, num_lines, num_samples, iterations);
 
 		cudaThreadSynchronize();
 
-		status = cublasSetVector(num_bands * n_pc, sizeof(float), h_P, 1, d_P, 1);
+		/* sumFi = deltaP' * XX */
+		alpha = 1;
+		beta = 0;
+		status = cublasSgemm(deviceID->handle, CUBLAS_OP_T, CUBLAS_OP_N, n_pc,
+				num_bands, num_bands, &alpha, d_deltaP, num_bands, d_XX,
+				num_bands, &beta, d_sumFi, n_pc);
 		if (status != CUBLAS_STATUS_SUCCESS) {
-			fprintf (stderr, "!!!! device access error (write P)\n");
+			fprintf(stderr,
+					"!!!! kernel execution error (sumFi = deltaP' * XX).\n");
 			return EXIT_FAILURE;
 		}
+
+		cudaThreadSynchronize();
+
+		/* Ytmp = sumFi * deltaP */
+		alpha = 1;
+		beta = 0;
+		status = cublasSgemm(deviceID->handle, CUBLAS_OP_N, CUBLAS_OP_N, n_pc,
+				n_pc, num_bands, &alpha, d_sumFi, n_pc, d_deltaP, num_bands,
+				&beta, d_Ytmp, n_pc);
+		if (status != CUBLAS_STATUS_SUCCESS) {
+			fprintf(stderr,
+					"!!!! kernel execution error (Ytmp = sumFi * deltaP).\n");
+			return EXIT_FAILURE;
+		}
+
+		cudaThreadSynchronize();
+
+		cudaMemcpy(h_Ytmp_aux, d_Ytmp, n_pc * n_pc * sizeof(float),
+				cudaMemcpyDeviceToHost);
+
+		for (int i = 0; i < n_pc; i++) { //col
+			for (int j = 0; j < n_pc; j++) { //fil
+				if (i == j) {
+					//Aprovechamos para formar EIGEN a partir de la diagonal de Ytmp
+					h_EIGEN[i] = h_Ytmp_aux[(i * n_pc) + j];
+					//printf("EIGEN[%d] = %f\n", i, h_EIGEN[i]);
+				}
+				if (i >= j) {
+					h_Ytmp_aux[(i * n_pc) + j] = 0;
+				}
+
+			}
+		}
+		status = cublasSetVector(n_pc * n_pc, sizeof(float), h_Ytmp_aux, 1,
+				d_Ytmp_aux, 1);
+		if (status != CUBLAS_STATUS_SUCCESS) {
+			fprintf(stderr, "!!!! device access error (write Ytmp_aux)\n");
+			return EXIT_FAILURE;
+		}
+
+		/* Fitmp = Ytmp_aux * P' */
+		alpha = 1;
+		beta = 0;
+		status = cublasSgemm(deviceID->handle, CUBLAS_OP_N, CUBLAS_OP_T, n_pc,
+				num_bands, n_pc, &alpha, d_Ytmp_aux, n_pc, d_P, num_bands,
+				&beta, d_Fitmp, n_pc);
+		if (status != CUBLAS_STATUS_SUCCESS) {
+			fprintf(stderr,
+					"!!!! kernel execution error (Fitmp = Ytmp_aux * P').\n");
+			return EXIT_FAILURE;
+		}
+		//
+		cudaThreadSynchronize();
+
+		/* sumFi = sumFi - Fitmp */
+		status = cublasGetVector(n_pc * num_bands, sizeof(float), d_sumFi, 1,
+				h_sumFi, 1);
+		if (status != CUBLAS_STATUS_SUCCESS) {
+			fprintf(stderr, "!!!! device access error (read sumFi)\n");
+			return EXIT_FAILURE;
+		}
+		status = cublasGetVector(n_pc * num_bands, sizeof(float), d_Fitmp, 1,
+				h_Fitmp, 1);
+		if (status != CUBLAS_STATUS_SUCCESS) {
+			fprintf(stderr, "!!!! device access error (read Fitmp)\n");
+			return EXIT_FAILURE;
+		}
+
+		for (int i = 0; i < n_pc * num_bands; i++) {
+			h_sumFi[i] -= h_Fitmp[i];
+		}
+		cudaThreadSynchronize();
+
+		/* P = sumFi ' */
+		for (int i = 0; i < num_bands; i++) {
+			for (int j = 0; j < n_pc; j++) {
+				h_P[(j * num_bands) + i] = h_sumFi[(i * n_pc) + j];
+			}
+		}
+
+		status = cublasSetVector(n_pc * num_bands, sizeof(float), h_sumFi, 1,
+				d_sumFi, 1);
+		if (status != CUBLAS_STATUS_SUCCESS) {
+			fprintf(stderr, "!!!! device access error (write sumFi)\n");
+			return EXIT_FAILURE;
+		}
+
+		status = cublasSetVector(num_bands * n_pc, sizeof(float), h_P, 1, d_P,
+				1);
+		if (status != CUBLAS_STATUS_SUCCESS) {
+			fprintf(stderr, "!!!! device access error (write P)\n");
+			return EXIT_FAILURE;
+		}
+
+		cudaThreadSynchronize();
 
 		/* P_aux= P' * P */
-		cublasSgemm('t', 'n', n_pc, n_pc, num_bands, 1, d_P, num_bands, d_P, num_bands, 0, d_P_aux, n_pc);
-		status = cublasGetError();
+		alpha = 1;
+		beta = 0;
+		status = cublasSgemm(deviceID->handle, CUBLAS_OP_T, CUBLAS_OP_N, n_pc,
+				n_pc, num_bands, &alpha, d_P, num_bands, d_P, num_bands, &beta,
+				d_P_aux, n_pc);
 		if (status != CUBLAS_STATUS_SUCCESS) {
-			fprintf (stderr, "!!!! kernel execution error (P_aux= P' * P).\n");
+			fprintf(stderr, "!!!! kernel execution error (P_aux= P' * P).\n");
 			return EXIT_FAILURE;
 		}
 
 		/* diag(diag(P_aux))^-0.5 */
-		status = cublasGetVector(n_pc * n_pc, sizeof(float), d_P_aux, 1, h_P_aux, 1);
+		status = cublasGetVector(n_pc * n_pc, sizeof(float), d_P_aux, 1,
+				h_P_aux, 1);
 		if (status != CUBLAS_STATUS_SUCCESS) {
-			fprintf (stderr, "!!!! device access error (read P_aux)\n");
+			fprintf(stderr, "!!!! device access error (read P_aux)\n");
 			return EXIT_FAILURE;
 		}
 
-		for (int i=0; i<n_pc; i++){//columna
-			for (int j=0; j<n_pc; j++){//fila
-				if(j!=i){
-					h_P_aux[(i*n_pc)+j]=0;
-				}
-				else{
-					h_P_aux[(i*n_pc)+j]=pow(h_P_aux[(i*n_pc)+j], -0.5);
+		for (int i = 0; i < n_pc; i++) { //columna
+			for (int j = 0; j < n_pc; j++) { //fila
+				if (j != i) {
+					h_P_aux[(i * n_pc) + j] = 0;
+				} else {
+					h_P_aux[(i * n_pc) + j] = pow(h_P_aux[(i * n_pc) + j],
+							-0.5);
 				}
 			}
 		}
 
-
-		status = cublasSetVector(n_pc * n_pc, sizeof(float), h_P_aux, 1, d_P_aux, 1);
+		status = cublasSetVector(n_pc * n_pc, sizeof(float), h_P_aux, 1,
+				d_P_aux, 1);
 		if (status != CUBLAS_STATUS_SUCCESS) {
-			fprintf (stderr, "!!!! device access error (write P_aux)\n");
+			fprintf(stderr, "!!!! device access error (write P_aux)\n");
 			return EXIT_FAILURE;
 		}
 
 		/* P = P * (diag(diag(P'*P))^-0.5) */
-		cublasSgemm('n', 'n', num_bands, n_pc, n_pc, 1, d_P, num_bands, d_P_aux, n_pc, 0, d_P, num_bands);
-		status = cublasGetError();
+		alpha = 1;
+		beta = 0;
+		status = cublasSgemm(deviceID->handle, CUBLAS_OP_N, CUBLAS_OP_N,
+				num_bands, n_pc, n_pc, &alpha, d_P, num_bands, d_P_aux, n_pc,
+				&beta, d_P, num_bands);
 		if (status != CUBLAS_STATUS_SUCCESS) {
-			fprintf (stderr, "!!!! kernel execution error (P = P * (diag(diag(P'*P))^-0.5)).\n");
+			fprintf(stderr,
+					"!!!! kernel execution error (P = P * (diag(diag(P'*P))^-0.5)).\n");
 			return EXIT_FAILURE;
 		}
-
-		/* XX = X'*X */
-		cublasSgemm('t', 'n', num_bands, num_bands, lines_samples, 1, d_X, lines_samples, d_X, lines_samples, 0, d_XX, num_bands);
-		status = cublasGetError();
-		if (status != CUBLAS_STATUS_SUCCESS) {
-			fprintf (stderr, "!!!! kernel execution error (XX = X'*X.\n");
-			return EXIT_FAILURE;
-		}
-
+		//
 		cudaThreadSynchronize();
 
-		int iter;
-		if(fixed_n_iterations==1){
-			//printf("Numero de iteraciones fijadas a %d\n", n_iterations);
-		}
-
-		for(iter=0; iter<n_iterations; iter++){
-
-			/*Compute deflation matrix*/
-			/* Pcoeffs = P' * P */
-			cublasSgemm('t', 'n', n_pc, n_pc, num_bands, 1, d_P, num_bands, d_P, num_bands, 0, d_Pcoeffs, n_pc);
-			status = cublasGetError();
-			if (status != CUBLAS_STATUS_SUCCESS) {
-				fprintf (stderr, "!!!! kernel execution error (Pcoeffs = P' * P ).\n");
-				return EXIT_FAILURE;
-			}
-			//
-			cudaThreadSynchronize();
-
-			/* defl = -Pcoeffs*/
-			cudaMemcpy(h_Pcoeffs, d_Pcoeffs, n_pc * n_pc * sizeof(float), cudaMemcpyDeviceToHost);
-
-			for(int i=0; i<n_pc*n_pc; i++){
-				h_defl[i]=-h_Pcoeffs[i];
-			}
-
-			/* defl = triu(defl,+1) + eye(size(defl)) */
-			for (int i=0; i<n_pc; i++){//col
-				for (int j=0; j<n_pc; j++){//fil
-					if(i==j){
-						h_defl[(i*n_pc)+j]=1;
-					}
-					else{
-						if(j>i){
-							h_defl[(i*n_pc)+j]=0;
-						}
-					}
-				}
-			}
-
-			for (int i=0; i<n_pc; i++){
-				for (int j=i+2; j<n_pc; j++){
-					for (int k=i+2; k<=j; k++){
-						h_defl[i+(j*n_pc)]-=h_defl[i+((k-1)*n_pc)] * h_Pcoeffs[(k-1)+(j*n_pc)];
-					}
-				}
-			}
-			status = cublasSetVector(n_pc * n_pc, sizeof(float), h_defl, 1, d_defl, 1);
-			if (status != CUBLAS_STATUS_SUCCESS) {
-				fprintf (stderr, "!!!! device access error (write defl)\n");
-				return EXIT_FAILURE;
-			}
-
-			cudaThreadSynchronize();
-
-			/* deltaP = P * defl */
-
-			cublasSgemm('n', 'n', num_bands, n_pc, n_pc, 1, d_P, num_bands, d_defl, n_pc, 0, d_deltaP, num_bands);
-			status = cublasGetError();
-			if (status != CUBLAS_STATUS_SUCCESS) {
-				fprintf (stderr, "!!!! kernel execution error (deltaP = P * defl ).\n");
-				return EXIT_FAILURE;
-			}
-
-			cudaThreadSynchronize();
-
-			/* sumFi = deltaP' * XX */
-			cublasSgemm('t', 'n', n_pc, num_bands, num_bands, 1, d_deltaP, num_bands, d_XX, num_bands, 0, d_sumFi, n_pc);
-			status = cublasGetError();
-			if (status != CUBLAS_STATUS_SUCCESS) {
-				fprintf (stderr, "!!!! kernel execution error (sumFi = deltaP' * XX).\n");
-				return EXIT_FAILURE;
-			}
-
-			cudaThreadSynchronize();
-
-			/* Ytmp = sumFi * deltaP */
-			cublasSgemm('n', 'n', n_pc, n_pc, num_bands, 1, d_sumFi, n_pc, d_deltaP, num_bands, 0, d_Ytmp, n_pc);
-			status = cublasGetError();
-			if (status != CUBLAS_STATUS_SUCCESS) {
-				fprintf (stderr, "!!!! kernel execution error (Ytmp = sumFi * deltaP).\n");
-				return EXIT_FAILURE;
-			}
-
-			cudaThreadSynchronize();
-
-			cudaMemcpy(h_Ytmp_aux, d_Ytmp, n_pc * n_pc * sizeof(float), cudaMemcpyDeviceToHost);
-
-			for (int i=0; i<n_pc; i++){//col
-				for (int j=0; j<n_pc; j++){//fil
-					if(i==j){
-					//Aprovechamos para formar EIGEN a partir de la diagonal de Ytmp
-						h_EIGEN[i]=h_Ytmp_aux[(i*n_pc)+j];
-						//printf("EIGEN[%d] = %f\n", i, h_EIGEN[i]);
-					}
-					if(i>=j){
-						h_Ytmp_aux[(i*n_pc)+j]=0;
-					}
-
-				}
-			}
-			status = cublasSetVector(n_pc * n_pc, sizeof(float), h_Ytmp_aux, 1, d_Ytmp_aux, 1);
-			if (status != CUBLAS_STATUS_SUCCESS) {
-				fprintf (stderr, "!!!! device access error (write Ytmp_aux)\n");
-				return EXIT_FAILURE;
-			}
-
-
-			/* Fitmp = Ytmp_aux * P' */
-			cublasSgemm('n', 't', n_pc, num_bands, n_pc, 1, d_Ytmp_aux, n_pc, d_P, num_bands, 0, d_Fitmp, n_pc);
-			status = cublasGetError();
-			if (status != CUBLAS_STATUS_SUCCESS) {
-				fprintf (stderr, "!!!! kernel execution error (Fitmp = Ytmp_aux * P').\n");
-				return EXIT_FAILURE;
-			}
-			//
-			cudaThreadSynchronize();
-
-			/* sumFi = sumFi - Fitmp */
-			status = cublasGetVector(n_pc * num_bands, sizeof(float), d_sumFi, 1, h_sumFi, 1);
-			if (status != CUBLAS_STATUS_SUCCESS) {
-				fprintf (stderr, "!!!! device access error (read sumFi)\n");
-				return EXIT_FAILURE;
-			}
-			status = cublasGetVector(n_pc * num_bands, sizeof(float), d_Fitmp, 1, h_Fitmp, 1);
-			if (status != CUBLAS_STATUS_SUCCESS) {
-				fprintf (stderr, "!!!! device access error (read Fitmp)\n");
-				return EXIT_FAILURE;
-			}
-
-			for(int i=0; i< n_pc * num_bands; i++){
-				h_sumFi[i]-=h_Fitmp[i];
-			}
-			cudaThreadSynchronize();
-
-			/* P = sumFi ' */
-			for(int i=0; i<num_bands; i++){
-				for(int j=0; j<n_pc; j++){
-					h_P[(j*num_bands)+i]=h_sumFi[(i*n_pc)+j];
-				}
-			}
-
-			status = cublasSetVector(n_pc * num_bands, sizeof(float), h_sumFi, 1, d_sumFi, 1);
-			if (status != CUBLAS_STATUS_SUCCESS) {
-				fprintf (stderr, "!!!! device access error (write sumFi)\n");
-				return EXIT_FAILURE;
-			}
-
-			status = cublasSetVector(num_bands * n_pc, sizeof(float), h_P, 1, d_P, 1);
-			if (status != CUBLAS_STATUS_SUCCESS) {
-				fprintf (stderr, "!!!! device access error (write P)\n");
-				return EXIT_FAILURE;
-			}
-
-			cudaThreadSynchronize();
-
-			/* P_aux= P' * P */
-			cublasSgemm('t', 'n', n_pc, n_pc, num_bands, 1, d_P, num_bands, d_P, num_bands, 0, d_P_aux, n_pc);
-			status = cublasGetError();
-			if (status != CUBLAS_STATUS_SUCCESS) {
-				fprintf (stderr, "!!!! kernel execution error (P_aux= P' * P).\n");
-				return EXIT_FAILURE;
-			}
-
-			/* diag(diag(P_aux))^-0.5 */
-			status = cublasGetVector(n_pc * n_pc, sizeof(float), d_P_aux, 1, h_P_aux, 1);
-			if (status != CUBLAS_STATUS_SUCCESS) {
-				fprintf (stderr, "!!!! device access error (read P_aux)\n");
-				return EXIT_FAILURE;
-			}
-
-			for (int i=0; i<n_pc; i++){//columna
-				for (int j=0; j<n_pc; j++){//fila
-					if(j!=i){
-						h_P_aux[(i*n_pc)+j]=0;
-					}
-					else{
-						h_P_aux[(i*n_pc)+j]=pow(h_P_aux[(i*n_pc)+j], -0.5);
-					}
-				}
-			}
-
-			status = cublasSetVector(n_pc * n_pc, sizeof(float), h_P_aux, 1, d_P_aux, 1);
-			if (status != CUBLAS_STATUS_SUCCESS) {
-				fprintf (stderr, "!!!! device access error (write P_aux)\n");
-				return EXIT_FAILURE;
-			}
-
-			/* P = P * (diag(diag(P'*P))^-0.5) */
-			cublasSgemm('n', 'n', num_bands, n_pc, n_pc, 1, d_P, num_bands, d_P_aux, n_pc, 0, d_P, num_bands);
-			status = cublasGetError();
-			if (status != CUBLAS_STATUS_SUCCESS) {
-				fprintf (stderr, "!!!! kernel execution error (P = P * (diag(diag(P'*P))^-0.5)).\n");
-				return EXIT_FAILURE;
-			}
-			//
-			cudaThreadSynchronize();
-
-			/* EIGEN = diag(Ytmp) */
-			//ya está hecho
-			max=-1;
-			max_i=-1;
-			for(int i=0; i<n_pc; i++){
-				//aux=ABS(h_EIGEN[i]-h_EIGENold[i])/ABS(h_EIGENold[i]);
-				//aux=ABS(h_EIGEN[i]-h_EIGENold[i]);
-				aux=ABS(h_EIGEN[i]-h_EIGENold[i])/ABS(h_EIGENold[i]);
-				//printf("aux = %f\n", aux);
-				if(max<aux){
-					max=aux;
-					max_i=i;
-				}
-			}
-			//printf("max = %f\n", max);
-			//printf("max_i = %d\n", max_i);
-
-			if(fixed_n_iterations == 0){
-				if (max<THRESHOLD || ABS(h_EIGEN[max_i]-h_EIGENold[max_i])<THRESHOLD){
-					//printf("ITER = %d\n", iter);
-					break;
-				}
-			}
-			for(int i=0; i<n_pc; i++){
-				h_EIGENold[i]=h_EIGEN[i];
-				//if(iter==87 || iter==88 || iter==89){
-				//printf("EIGENold[%d] = %f\n", i, h_EIGENold[i]);
-				//}
+		/* EIGEN = diag(Ytmp) */
+		//ya está hecho
+		max = -1;
+		max_i = -1;
+		for (int i = 0; i < n_pc; i++) {
+			//aux=ABS(h_EIGEN[i]-h_EIGENold[i])/ABS(h_EIGENold[i]);
+			//aux=ABS(h_EIGEN[i]-h_EIGENold[i]);
+			aux = ABS(h_EIGEN[i]-h_EIGENold[i]) / ABS(h_EIGENold[i]);
+			//printf("aux = %f\n", aux);
+			if (max < aux) {
+				max = aux;
+				max_i = i;
 			}
 		}
+		//printf("max = %f\n", max);
+		//printf("max_i = %d\n", max_i);
 
-		//printf("ITER\t%d\n", iter);
-
-		/* B = X * P */
-		cublasSgemm('n', 'n', lines_samples, n_pc, num_bands, 1, d_X, lines_samples, d_P, num_bands, 0, d_B, lines_samples);
-		status = cublasGetError();
-		if (status != CUBLAS_STATUS_SUCCESS) {
-			fprintf (stderr, "!!!! kernel execution error (B = X * P)\n");
-			return EXIT_FAILURE;
+		if (fixed_n_iterations == 0) {
+			if (max < THRESHOLD
+					|| ABS(h_EIGEN[max_i]-h_EIGENold[max_i]) < THRESHOLD) {
+				//printf("ITER = %d\n", iter);
+				break;
+			}
 		}
-		cudaThreadSynchronize();
-
-		status = cublasGetVector(lines_samples * n_pc, sizeof(float), d_B, 1, h_B, 1);
-		if (status != CUBLAS_STATUS_SUCCESS) {
-			fprintf (stderr, "!!!! device access error (read B)\n");
-			return EXIT_FAILURE;
+		for (int i = 0; i < n_pc; i++) {
+			h_EIGENold[i] = h_EIGEN[i];
+			//if(iter==87 || iter==88 || iter==89){
+			//printf("EIGENold[%d] = %f\n", i, h_EIGENold[i]);
+			//}
 		}
+	}
 
-		free(h_EIGEN);
-		free(h_EIGENold);
-		free(h_P);
-		free(h_Pcoeffs);
-		free(h_defl);
-		free(h_sumFi);
-		free(h_Fitmp);
-		free(h_Ytmp_aux);
-		free(h_P_aux);
+	//printf("ITER\t%d\n", iter);
 
-		cublasFree(d_X);
-		cublasFree(d_P);
-		cublasFree(d_Y);
-		cublasFree(d_Y2);
-		cublasFree(d_Pcoeffs);
-		cublasFree(d_defl);
-		cublasFree(d_sumFi);
-		cublasFree(d_Ytmp);
-		cublasFree(d_Fitmp);
-		cublasFree(d_Ytmp_aux);
-		cublasFree(d_pixel);
-		cublasFree(d_P_aux);
-		cublasFree(d_B);
-		cublasFree(d_XX);
-		cublasFree(d_deltaP);
+	/* B = X * P */
+	alpha = 1;
+	beta = 0;
+	status = cublasSgemm(deviceID->handle, CUBLAS_OP_N, CUBLAS_OP_N,
+			lines_samples, n_pc, num_bands, &alpha, d_X, lines_samples, d_P,
+			num_bands, &beta, d_B, lines_samples);
+	if (status != CUBLAS_STATUS_SUCCESS) {
+		fprintf(stderr, "!!!! kernel execution error (B = X * P)\n");
+		return EXIT_FAILURE;
+	}
+	cudaThreadSynchronize();
 
-		cudaThreadSynchronize();
-		return 0;
+	status = cublasGetVector(lines_samples * n_pc, sizeof(float), d_B, 1, h_B,
+			1);
+	if (status != CUBLAS_STATUS_SUCCESS) {
+		fprintf(stderr, "!!!! device access error (read B)\n");
+		return EXIT_FAILURE;
+	}
+
+	free(h_EIGEN);
+	free(h_EIGENold);
+	free(h_P);
+	free(h_Pcoeffs);
+	free(h_defl);
+	free(h_sumFi);
+	free(h_Fitmp);
+	free(h_Ytmp_aux);
+	free(h_P_aux);
+
+	cudaFree(d_X);
+	cudaFree(d_P);
+	cudaFree(d_Y);
+	cudaFree(d_Y2);
+	cudaFree(d_Pcoeffs);
+	cudaFree(d_defl);
+	cudaFree(d_sumFi);
+	cudaFree(d_Ytmp);
+	cudaFree(d_Fitmp);
+	cudaFree(d_Ytmp_aux);
+	cudaFree(d_pixel);
+	cudaFree(d_P_aux);
+	cudaFree(d_B);
+	cudaFree(d_XX);
+	cudaFree(d_deltaP);
+
+	cudaThreadSynchronize();
+	return 0;
 }
 
-int nfindr(const float* h_image, const int num_samples, const int n_pc,
-		const int lines_samples, const int g_aleatorios,
-		const char* nfinder_init_file, int *P) {
-	int p = n_pc + 1;//Numbers of reduced image principal components + 1.
+int nfindr(deviceIdentifier *deviceID, const float* h_image,
+		const int num_samples, const int n_pc, const int lines_samples,
+		const int g_aleatorios, const char* nfinder_init_file, int *P) {
+	cudaSetDevice(deviceID->device);
+
+	int p = n_pc + 1;		//Numbers of reduced image principal components + 1.
 
 	int *aleatorios;
 
@@ -917,11 +987,11 @@ int nfindr(const float* h_image, const int num_samples, const int n_pc,
 		P[k] = aleatorios[k];
 		MatrixTest[k] = 1;
 		matrix[k] = 1;
-		for (int i = 1; i < p; i++) {//from 1 to 19
-			MatrixTest[k + (i * p)] = (double) h_image[P[k] + ((i - 1)
-					* lines_samples)];
-			matrix[k + (i * p)] = (double) h_image[P[k] + ((i - 1)
-					* lines_samples)];
+		for (int i = 1; i < p; i++) {	//from 1 to 19
+			MatrixTest[k + (i * p)] = (double) h_image[P[k]
+					+ ((i - 1) * lines_samples)];
+			matrix[k + (i * p)] = (double) h_image[P[k]
+					+ ((i - 1) * lines_samples)];
 		}
 	}
 
@@ -966,12 +1036,12 @@ int nfindr(const float* h_image, const int num_samples, const int n_pc,
 				MatrixTest[(i + 1) * p + k] = MatrixTest[(i + 1) * p + (p - 1)];
 				MatrixTest[(i + 1) * p + (p - 1)] = pixelactual[i];
 			}
-			for (int i = 0; i < p; i++) {//Set the last column 0 0 0 ... 1
+			for (int i = 0; i < p; i++) {	//Set the last column 0 0 0 ... 1
 				MatrixTest[i * p + (p - 1)] = 0;
 			}
 			MatrixTest[p * p - 1] = 1;
 			memcpy(MatrixTestLU, MatrixTest, p * p * sizeof(double));//Not to overwrite MatrixTest doing LU
-			if(LU(MatrixTestLU, Ldet, Udet, Pdet, p) != 0) {
+			if (LU(MatrixTestLU, Ldet, Udet, Pdet, p) != 0) {
 				free(h_indices);
 				free(h_volumenes);
 
@@ -990,7 +1060,7 @@ int nfindr(const float* h_image, const int num_samples, const int n_pc,
 			}
 			sUdet = Absoluto(sUdet);
 
-			InvTri(Ldet, p);//inv(Ldet)
+			InvTri(Ldet, p);	//inv(Ldet)
 
 			for (int j = 0; j < p; j++) {
 				aux2[j] = 0;
@@ -1036,7 +1106,7 @@ int nfindr(const float* h_image, const int num_samples, const int n_pc,
 				MatrixTest[(i + 1) * p + (p - 1)] = MatrixTest[(i + 1) * p + k];
 				MatrixTest[(i + 1) * p + k] = pixelactual[i];
 			}
-		}//for k
+		}	//for k
 
 		//for(int i=0; i<p; i++){
 		//	printf("Pixel %d -> [%d, %d]\n", i, P[i]/num_samples, P[i]%num_samples);
@@ -1045,7 +1115,7 @@ int nfindr(const float* h_image, const int num_samples, const int n_pc,
 		it++;
 		v1 = v2;
 		v2 = volumeactual;
-	}//while and
+	}		//while and
 
 	int nit = it - 1;
 	if (nit < maxit) {
@@ -1083,9 +1153,12 @@ int nfindr(const float* h_image, const int num_samples, const int n_pc,
 	return 0;
 }
 
-void lsu(const float* h_image, const int* P, const int num_lines,
-		const int num_samples, const int num_bands, const int lines_samples,
-		const int num_endmembers, float* abundance_map) {
+void lsu(deviceIdentifier *deviceID, const float* h_image, const int* P,
+		const int num_lines, const int num_samples, const int num_bands,
+		const int lines_samples, const int num_endmembers,
+		float* abundance_map) {
+
+	cudaSetDevice(deviceID->device);
 
 	//Pointers to Host memory
 	double *h_end;
@@ -1102,12 +1175,12 @@ void lsu(const float* h_image, const int* P, const int num_lines,
 
 	//Memory assignmrnt for Device and Host
 	h_end = (double*) malloc(num_bands * num_endmembers * sizeof(double));//Matriz de Endmembers
-	h_endt = (double*) malloc(num_bands * num_endmembers * sizeof(double));//Matriz de Endmembers Traspuesta
+	h_endt = (double*) malloc(num_bands * num_endmembers * sizeof(double));	//Matriz de Endmembers Traspuesta
 	h_etxe = (double*) malloc(num_endmembers * num_endmembers * sizeof(double));// h_endt * h_end
-	h_etxei
-			= (double*) malloc(num_endmembers * num_endmembers * sizeof(double));// Inversa(h_etxe)
+	h_etxei = (double*) malloc(
+			num_endmembers * num_endmembers * sizeof(double));// Inversa(h_etxe)
 	h_matriz_computo = (double*) malloc(
-			num_endmembers * num_bands * sizeof(double));// h_etxei * h_endt
+			num_endmembers * num_bands * sizeof(double));	// h_etxei * h_endt
 	h_matriz_computo2 = (float*) malloc(
 			num_endmembers * num_bands * sizeof(float));
 
@@ -1158,7 +1231,7 @@ void lsu(const float* h_image, const int* P, const int num_lines,
 	double *b;
 	//float *c;
 	int n = num_endmembers;
-	b = (double*) malloc(num_endmembers * num_endmembers * sizeof(double));//matriz de los términos independientes
+	b = (double*) malloc(num_endmembers * num_endmembers * sizeof(double));	//matriz de los términos independientes
 	//c = (float*) malloc (N_END * N_END * sizeof(float));
 	for (int i = 0; i < num_endmembers * num_endmembers; i++) {
 		b[i] = 0;
@@ -1176,16 +1249,15 @@ void lsu(const float* h_image, const int* P, const int num_lines,
 			//independent terms
 			for (int s = 0; s < n; s++) {
 				b[i * num_endmembers + s] -= h_etxe[i * num_endmembers + k]
-						* b[k * num_endmembers + s] / h_etxe[k * num_endmembers
-						+ k];
+						* b[k * num_endmembers + s]
+						/ h_etxe[k * num_endmembers + k];
 			}
 
 			//matrix elements
 			for (int j = k + 1; j < n; j++) {
-				h_etxe[i * num_endmembers + j]
-						-= h_etxe[i * num_endmembers + k] * h_etxe[k
-								* num_endmembers + j] / h_etxe[k
-								* num_endmembers + k];
+				h_etxe[i * num_endmembers + j] -= h_etxe[i * num_endmembers + k]
+						* h_etxe[k * num_endmembers + j]
+						/ h_etxe[k * num_endmembers + k];
 			}
 		}
 	}
@@ -1198,9 +1270,10 @@ void lsu(const float* h_image, const int* P, const int num_lines,
 			h_etxei[i * num_endmembers + s] = b[i * num_endmembers + s]
 					/ h_etxe[i * num_endmembers + i];
 			for (int k = n - 1; k > i; k--) {
-				h_etxei[i * num_endmembers + s] -= h_etxe[i * num_endmembers
-						+ k] * h_etxei[k * num_endmembers + s] / h_etxe[i
-						* num_endmembers + i];
+				h_etxei[i * num_endmembers + s] -=
+						h_etxe[i * num_endmembers + k]
+								* h_etxei[k * num_endmembers + s]
+								/ h_etxe[i * num_endmembers + i];
 			}
 		}
 	}
@@ -1242,13 +1315,11 @@ void lsu(const float* h_image, const int* P, const int num_lines,
 	//int num_bloques_lsu = atoi(argv[11]);
 	//int num_hilos_lsu = atoi(argv[12]);
 
-
 	int num_hilos_lsu = 512;
 	int num_bloques_lsu = (int) ceil(
 			((float) lines_samples / (float) num_hilos_lsu));
 	//printf ("num_bloques_lsu = %d\n", num_bloques_lsu);
 	//printf ("num_hilos_lsu = %d\n", num_hilos_lsu);
-
 
 	//Kernel execution
 	Unmixing<<<num_bloques_lsu, num_hilos_lsu>>>(d_imagen, d_imagen_unmixing, d_matriz_computo, num_lines, num_samples, num_bands, num_endmembers);

@@ -205,7 +205,7 @@ __global__ void Unmixing(float *d_imagen, float *d_imagen_unmixing,float *d_matr
 					matriz_c[i]=d_matriz_computo[it*num_bands+i];
 				}
 			}
-			syncthreads();
+			__syncthreads();
 			a=0;
 			for(int k=0; k<num_bands; k++){	
 				a+=matriz_c[k]*l_pixel[k];

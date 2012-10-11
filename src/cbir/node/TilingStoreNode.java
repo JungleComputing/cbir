@@ -56,10 +56,12 @@ public class TilingStoreNode extends Node {
 			execs[i] = cbir.getFactory().createMetadataStoreExecutor(store,
 				repositories);
 		}
-
+		
 
 		TilingStoreNode node = new TilingStoreNode(storeName, width, height, repositories, execs);
+		store.enableUpdates(node);
 		node.activate();
+		
 
 		// nothing to do here, just wait for completion...
 

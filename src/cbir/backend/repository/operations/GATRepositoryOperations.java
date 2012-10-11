@@ -148,7 +148,7 @@ public class GATRepositoryOperations extends RepositoryOperations {
      * String)
      */
     @Override
-    public EnviHeader readHeader(String uuid) throws IOException {
+    protected EnviHeader doReadHeader(String uuid) throws IOException {
         try {
             FileInputStream headerIS = GAT.createFileInputStream(context,
                     headerURI(uuid));
@@ -161,7 +161,7 @@ public class GATRepositoryOperations extends RepositoryOperations {
     }
 
     @Override
-    public FloatImage loadData(EnviHeader header) throws IOException {
+    protected FloatImage doLoadData(EnviHeader header) throws IOException {
 
         // get the original uuid, which is the uuid of the orignal file in case
         // of tile-headers
@@ -208,7 +208,7 @@ public class GATRepositoryOperations extends RepositoryOperations {
     // }
 
     @Override
-    public ImageIdentifier[] contents() throws IOException {
+    protected ImageIdentifier[] doContents() throws IOException {
         File dir;
         try {
             dir = GAT.createFile(context, baseURI);
@@ -225,7 +225,7 @@ public class GATRepositoryOperations extends RepositoryOperations {
     }
 
     @Override
-    public BufferedImage createBufferedImage(EnviHeader header, String uuid,
+    protected BufferedImage doCreateBufferedImage(EnviHeader header, String uuid,
             int red, int green, int blue) throws IOException {
         FileInputStream fis;
         try {

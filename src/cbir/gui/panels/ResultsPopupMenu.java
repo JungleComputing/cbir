@@ -37,8 +37,8 @@ public class ResultsPopupMenu extends JPopupMenu {
 
 	public void setSelectedItem(ResultElement selectedValue) {
 		re = selectedValue;
-		setLabel(re.getImageID().getPrettyName());
-		label.setText(re.getImageID().getPrettyName());
+		setLabel(re.getImageID().tryGetPrettyName());
+		label.setText(re.getImageID().tryGetPrettyName());
 		label.revalidate();
 	}
 }

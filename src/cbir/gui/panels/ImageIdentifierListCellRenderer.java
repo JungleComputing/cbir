@@ -36,7 +36,7 @@ public class ImageIdentifierListCellRenderer extends JLabel implements
 		if (value == null) {
 			setText("");
 		} else {
-			setText(value.getPrettyName());
+			setText(value.tryGetPrettyName());
 		}
 
 		Color bg = null;

@@ -21,7 +21,7 @@ public class RepositoryMasterExecutor extends RepositoryExecutor implements
 
     public RepositoryMasterExecutor(RepositoryOperations[] ops,
             StealPool belongsTo, StealPool stealsFrom, WorkerContext context) {
-        super(ops, belongsTo, stealsFrom, context, false);
+        super(ops, belongsTo, stealsFrom, context);
     }
 
     /**

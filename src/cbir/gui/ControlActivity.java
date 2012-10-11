@@ -8,11 +8,12 @@ import org.slf4j.LoggerFactory;
 
 import cbir.MatchTable;
 import cbir.backend.MultiArchiveIndex;
+import cbir.backend.SingleArchiveIndex;
 import cbir.events.EnviHeaderEvent;
 import cbir.events.FloatImageEvent;
 import cbir.events.PreviewImageEvent;
 import cbir.events.QueryResultEvent;
-import cbir.events.StoreIndexEvent;
+import cbir.events.StoreIndexUpdateEvent;
 import cbir.events.TerminationEvent;
 import cbir.vars.CBIRActivityContext;
 import cbir.vars.ContextStrings;
@@ -56,11 +57,18 @@ public class ControlActivity extends Activity {
      */
     @Override
     public void process(Event e) throws Exception {
-        if (e instanceof StoreIndexEvent) {
-            System.out.println("Received a StoreIndexEvent, #elements: "
-                    + ((MultiArchiveIndex) e.data).size());
+        // if (e instanceof StoreIndexEvent) {
+        // System.out.println("Received a StoreIndexEvent, #elements: "
+        // + ((MultiArchiveIndex) e.data).size());
+        // logger.debug("Received a StoreIndexEvent: " + e.data);
+        // controller.deliverIndex(((StoreIndexEvent) e).getIndex());
+        // suspend();
+        // } else
+        if (e instanceof StoreIndexUpdateEvent) {
+            System.out.println("Received a StoreIndexUpdateEvent, #elements: "
+                    + ((SingleArchiveIndex) e.data).size());
             logger.debug("Received a StoreIndexEvent: " + e.data);
-            controller.deliverIndex(((StoreIndexEvent) e).getIndex());
+            controller.deliverIndex(((StoreIndexUpdateEvent) e).getIndex());
             suspend();
         } else if (e instanceof PreviewImageEvent) {
             System.out.println("Received a PreviewImageEvent: " + e.data);
@@ -72,7 +80,9 @@ public class ControlActivity extends Activity {
                     + ((MatchTable[]) e.data).length);
             logger.debug("Received a QueryResultEvent, #elements: "
                     + ((MatchTable[]) e.data).length);
-            controller.deliverResult(((QueryResultEvent) e).getResults());
+            QueryResultEvent qre = (QueryResultEvent) e;
+            // controller.deliverResult(qre.getResults());
+            controller.deliverResult(qre.getResults(), qre.getQueryTimeStamp());
             suspend();
         } else if (e instanceof EnviHeaderEvent) {
             System.out.println("Received a EnviHeaderEvent: " + e.data);

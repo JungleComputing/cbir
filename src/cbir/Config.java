@@ -19,4 +19,6 @@ public class Config {
     public static final int GUI_WIDTH = 1060;
     public static final int GUI_HEIGHT = 768;
 
+    public static final long STORE_UPDATE_INTERVAL = 4000;
+
 }

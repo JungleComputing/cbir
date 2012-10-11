@@ -13,10 +13,16 @@ public class QueryExecutor extends KernelExecutor {
 	private final MetadataCache cache;
 
 	public QueryExecutor(MetadataCache cache, StealPool belongsTo,
-			StealPool stealsFrom, WorkerContext context, boolean useGPU) {
-		super(belongsTo, stealsFrom, context, useGPU);
+			StealPool stealsFrom, WorkerContext context) {
+		super(belongsTo, stealsFrom, context);
 		this.cache = cache;
 	}
+	
+	public QueryExecutor(MetadataCache cache, StealPool belongsTo,
+                StealPool stealsFrom, WorkerContext context, long cudaHandle) {
+        super(belongsTo, stealsFrom, context, cudaHandle);
+        this.cache = cache;
+}
 
 	/**
 	 * 
@@ -33,4 +39,12 @@ public class QueryExecutor extends KernelExecutor {
 		super.run();
 	}
 
+	@Override
+	protected void printStatistics() {
+	        StringBuilder sb = new StringBuilder("QueryExecutor: " +
+	                identifier() + "\n");
+	        sb.append("--------------------------");
+
+	        System.out.println(sb.toString());
+	}
 }

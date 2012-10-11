@@ -1,21 +1,26 @@
 package cbir.frontend;
 
 import ibis.constellation.ActivityIdentifier;
+import ibis.constellation.Executor;
 import ibis.constellation.StealPool;
 import ibis.constellation.WorkerContext;
+
+import java.util.ArrayList;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import cbir.Config;
 import cbir.backend.MultiArchiveIndex;
+import cbir.backend.SingleArchiveIndex;
 import cbir.backend.repository.RepositoryExecutor;
 import cbir.backend.repository.operations.RepositoryOperations;
 import cbir.envi.FloatImage;
 import cbir.envi.ImageIdentifier;
+import cbir.events.StoreIndexUpdateEvent;
 import cbir.frontend.activities.GetDataAndQueryJob;
 import cbir.frontend.activities.GetHeaderFromStore;
-import cbir.frontend.activities.GetImageCollection;
+import cbir.frontend.activities.GetImageCollectionAndUpdates;
 import cbir.frontend.activities.GetImageFromStore;
 import cbir.frontend.activities.GetPreviewFromStore;
 import cbir.frontend.activities.ProcessImageAndQueryJob;
@@ -33,56 +38,48 @@ public class QueryInitiator extends RepositoryExecutor {
 
     private final String[] stores;
 
-    private volatile MultiArchiveIndex index;
+    private MultiArchiveIndex index;
     private long indexUpdateTime;
+    private ArrayList<ActivityIdentifier> indexUpdateListeners;
+
+    public QueryInitiator(String[] stores, RepositoryOperations[] ops,
+            StealPool belongsTo, StealPool stealsFrom, WorkerContext context) {
+        super(ops, belongsTo, stealsFrom, context);
+        this.stores = stores;
+        index = new MultiArchiveIndex();
+        indexUpdateListeners = new ArrayList<ActivityIdentifier>();
+    }
 
     public QueryInitiator(String[] stores, RepositoryOperations[] ops,
             StealPool belongsTo, StealPool stealsFrom, WorkerContext context,
-            boolean useGPU) {
-        super(ops, belongsTo, stealsFrom, context, useGPU);
+            long cudaHandle) {
+        super(ops, belongsTo, stealsFrom, context, cudaHandle);
         this.stores = stores;
-        setImageIndex(new MultiArchiveIndex());
+        index = new MultiArchiveIndex();
+        indexUpdateListeners = new ArrayList<ActivityIdentifier>();
     }
-
+    
     @Override
     public void run() {
-        // Start a thread that periodically updates the index first
-        // Thread indexUpdater = new Thread() {
-        // long updateStartTime = 0;
-        // public void run() {
-        // while (true) {
-        // submit(new GetImageCollection(null, getStores()));
-        // updateStartTime = System.currentTimeMillis();
-        // for(long update = getIndexUpdateTime(); update < updateStartTime ||
-        // update + 10000 < System.currentTimeMillis();) {
-        // try {
-        // Thread.sleep(10000);
-        // } catch (InterruptedException e) {
-        // //ignore
-        // }
-        // }
-        // }
-        // }
-        // };
-        // indexUpdater.setDaemon(true);
-        // indexUpdater.start();
-
+        submit(new GetImageCollectionAndUpdates(getStores()));
+//        submit(new GetStoreIndexAndRegisterForUpdates());
         super.run();
     }
 
     public void query(FloatImage queryData, MultiArchiveIndex searchScope,
-            ActivityIdentifier destination) {
+            long queryTimeStamp, ActivityIdentifier destination) {
         if (searchScope == null) {
             searchScope = getImageIndex();
         }
 
         ProcessImageAndQueryJob q = new ProcessImageAndQueryJob(queryData,
-                searchScope, Config.nResults, Config.batchSize, destination);
+                searchScope, Config.nResults, Config.batchSize, queryTimeStamp,
+                destination);
         submit(q);
     }
 
     public void query(ImageIdentifier imageID, MultiArchiveIndex searchScope,
-            ActivityIdentifier destination) {
+            long queryTimeStamp, ActivityIdentifier destination) {
         if (searchScope == null) {
             searchScope = getImageIndex();
         }
@@ -90,7 +87,8 @@ public class QueryInitiator extends RepositoryExecutor {
         String[] stores = getImageIndex().getStoresFor(imageID);
 
         GetDataAndQueryJob job = new GetDataAndQueryJob(imageID, stores,
-                searchScope, Config.nResults, Config.batchSize, destination);
+                searchScope, Config.nResults, Config.batchSize, queryTimeStamp,
+                destination);
         submit(job);
     }
 
@@ -100,9 +98,10 @@ public class QueryInitiator extends RepositoryExecutor {
     // Config.QUERY_INITIATOR_REPOSITORY, destination));
     // }
 
-    public void getIndex(ActivityIdentifier destination) {
-        submit(new GetImageCollection(destination, getStores()));
-    }
+//    public void getIndex(ActivityIdentifier destination) {
+//        send(new StoreIndexEvent(null, destination, getImageIndex()));
+////        submit(new GetImageCollection(destination, getStores()));
+//    }
 
     public void getImage(ImageIdentifier imageID, String[] stores,
             ActivityIdentifier destination) {
@@ -135,55 +134,17 @@ public class QueryInitiator extends RepositoryExecutor {
         return stores;
     }
 
-    // private MatchTable[] query(String query, MultiArchiveIndex searchScope) {
-    // if (searchScope == null) {
-    // searchScope = getImageIndex();
-    // }
-    // Metadata md = getMetadata(query);
-    // System.out.println("Got Query Metadata!");
-    //
-    // LaunchQuery q = new LaunchQuery(md, searchScope, Config.nResults,
-    // Config.batchSize);
-    // submit(q);
-    // System.out.println("Query Started...");
-    // return q.waitForResults();
-    // }
-    //
-    // private MatchTable[] query(Metadata queryData, MultiArchiveIndex
-    // searchScope) {
-    // LaunchQuery q = new LaunchQuery(queryData, searchScope,
-    // Config.nResults, Config.batchSize);
-    // submit(q);
-    // System.out.println("Query Started...");
-    // return q.waitForResults();
-    // }
-
-    // private Metadata getMetadata(String imageURI) {
-    // SingleEventCollector querySec = new SingleEventCollector(
-    // new UnitActivityContext(ContextStrings.QUERY_INITIATOR));
-    // submit(new CalculateEndmembers(imageURI,
-    // Config.QUERY_INITIATOR_REPOSITORY, submit(querySec)));
-    //
-    // return (Metadata) querySec.waitForEvent().data;
-    // }
-
-    // private MultiArchiveIndex getSearchSpace() {
-    // SingleEventCollector scopeSec = new SingleEventCollector(
-    // new UnitActivityContext(ContextStrings.QUERY_INITIATOR));
-    // submit(new GetImageCollection(submit(scopeSec), stores));
-    // MultiArchiveIndex searchScope = (MultiArchiveIndex) scopeSec
-    // .waitForEvent().data;
-    // System.out.println("Got SearchScope: " + searchScope.size()
-    // + " images!");
-    // return searchScope;
-    // }
-
     private synchronized MultiArchiveIndex getImageIndex() {
         return index;
     }
 
-    public synchronized void setImageIndex(MultiArchiveIndex index) {
-        this.index = index;
+    public  void addIndex(SingleArchiveIndex sai, Executor executor) {
+        ActivityIdentifier[] indexUpdateListenersArray;
+        synchronized(this) {
+            indexUpdateListenersArray = new ActivityIdentifier[indexUpdateListeners.size()];
+            indexUpdateListenersArray = indexUpdateListeners.toArray(indexUpdateListenersArray);  
+            index.add(sai);
+        }
         indexUpdateTime = System.currentTimeMillis();
         if (logger.isDebugEnabled()) {
             logger.debug("***");
@@ -192,10 +153,29 @@ public class QueryInitiator extends RepositoryExecutor {
             logger.debug("now containing " + index.size() + " images");
             logger.debug("***");
         }
+        for(ActivityIdentifier listener: indexUpdateListenersArray) {
+            executor.send(new StoreIndexUpdateEvent(null, listener, sai));
+        }
     }
+    
+//    public synchronized void setImageIndex(MultiArchiveIndex index) {
+//        this.index = index;
+//        indexUpdateTime = System.currentTimeMillis();        
+//        if (logger.isDebugEnabled()) {
+//            logger.debug("***");
+//            logger.debug("Store index updated");
+//            logger.debug("timestamp:" + indexUpdateTime);
+//            logger.debug("now containing " + index.size() + " images");
+//            logger.debug("***");
+//        }
+//    }
 
     public long getIndexUpdateTime() {
         return indexUpdateTime;
+    }
+
+    public synchronized void registerForIndexUpdates(ActivityIdentifier listener) {
+        indexUpdateListeners.add(listener);
     }
 
 }

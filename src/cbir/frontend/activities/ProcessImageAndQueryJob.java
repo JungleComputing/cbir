@@ -72,10 +72,11 @@ public class ProcessImageAndQueryJob extends Activity {
     private final int batchSize;
     private final int results;
     private int batches;
+    private final long queryTimeStamp;
     private ActivityIdentifier[] destinations;
 
     public ProcessImageAndQueryJob(FloatImage queryImage,
-            MultiArchiveIndex searchScope, int results, int batchSize,
+            MultiArchiveIndex searchScope, int results, int batchSize, long queryTimeStamp,
             ActivityIdentifier... destinations) {
         super(new CBIRActivityContext(ContextStrings.QUERY_INITIATOR, true),
                 true, true);
@@ -86,6 +87,7 @@ public class ProcessImageAndQueryJob extends Activity {
         this.batchSize = batchSize;
         batches = 0;
         this.destinations = destinations;
+        this.queryTimeStamp = queryTimeStamp;
     }
 
     @Override
@@ -165,7 +167,7 @@ public class ProcessImageAndQueryJob extends Activity {
             if (md.getEndmembers() == null) {
                 // FIXME NFindr failed, cannot do query
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Endmember Extraction for " + md.getImageID().getPrettyName() + " failed");
+                    logger.debug("Endmember Extraction for " + md.getImageID().tryGetPrettyName() + " failed");
                 }
                 finish();
             } else {
@@ -200,7 +202,7 @@ public class ProcessImageAndQueryJob extends Activity {
         MatchTable[] msg = Arrays.copyOf(tables, results);
 
         for (ActivityIdentifier dest : destinations) {
-            getExecutor().send(new QueryResultEvent(identifier(), dest, msg));
+            getExecutor().send(new QueryResultEvent(identifier(), dest, queryTimeStamp, msg));
         }
     }
 
